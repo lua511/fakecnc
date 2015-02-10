@@ -1,0 +1,7 @@
+AC_PREREQ(2.53)
+AC_INIT(FakeCNC,m4_normalize(esyscmd([cat ../VERSION])),fake-developers@fake.fake)
+#AC_CONFIG_SRCDIR(cbp/helloworld.c)
+AC_CONFIG_FILES(Makefile.inc)
+AC_CONFIG_FILES(Makefile.modinc)
+AC_CONFIG_HEADER(config.h)
+AC_OUTPUT()
