@@ -1,0 +1,16 @@
+#the practice of autoconf
+the start point is configure.in which was used by autoconf.
+
+a version file is required at the parent folder.
+
+	../VERSION
+
+two makefile and one header file will be generate according the configuire.in,so two extra in file are required.
+
+	Makefile.inc.in
+	Makefile.modinc.in
+
+autoconf wil geneate cache files.we provide a script for cleaning.
+
+	autogen.sh
+
