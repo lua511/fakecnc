@@ -1,3 +1,8 @@
+#configure something real.
+${VAR1:-test} / ${VAL1-test} is same
+-test is the default value if VAR1.
+
+
 #the practice of autoconf
 the start point is configure.in which was used by autoconf.
 
