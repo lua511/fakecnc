@@ -1,3 +1,4 @@
 #!/bin/bash
-
+PYTHON=@PYTHON@
 echo "I am linuxcnc (shell under scripts)"
+echo `$PYTHON --version`
