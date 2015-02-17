@@ -1,3 +1,6 @@
+#now linuxcnc can use many foloder macros
+not it looks like a linuxcnc script.
+we are now focusing on linuxcnc.in,so all the changes are related to it.
 #how linuxcnc was created
 still talk about @xxx@
 #configure something real.
