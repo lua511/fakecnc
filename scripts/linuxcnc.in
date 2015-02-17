@@ -1,4 +1,8 @@
 #!/bin/bash
-PYTHON=@PYTHON@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 echo "I am linuxcnc (shell under scripts)"
-echo `$PYTHON --version`
+
+echo "prefix=${prefix}"
+echo "exec_path=${exec_prefix}"

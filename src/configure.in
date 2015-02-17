@@ -2,8 +2,21 @@ AC_PREREQ(2.53)
 AC_INIT(FakeCNC,m4_normalize(esyscmd([cat ../VERSION])),fake-developers@fake.fake)
 AC_CONFIG_SRCDIR(emc/motion/motion.c)
 
-SPATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin
-AC_PATH_PROG(PYTHON,python,"none",$SPATH)
+# macro BUILD_TOPLEVEL
+AC_MSG_CHECKING(build toplevel)
+BUILD_TOPLEVEL="$(cd ..; pwd -P)"
+AC_MSG_RESULT($BUILD_TOPLEVEL)
+
+# macro RUN_IN_PLACE
+AC_MSG_CHECKING(installation prefix)
+if test "x$prefix" = "xNONE"; then
+  RUN_IN_PLACE=yes
+  AC_MSG_RESULT(run in place)
+  prefix=${BUILD_TOPLEVEL}
+else
+  RUN_IN_PLACE=no
+  AC_MSG_RESULT($prefix)
+fi
 
 AC_CONFIG_FILES(Makefile.inc)
 AC_CONFIG_FILES(Makefile.modinc)
