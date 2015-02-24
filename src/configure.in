@@ -55,6 +55,8 @@ EMC2_IMAGE_DIR=$EMC2_HOME
 EMC2_TCL_LIB_DIR=$EMC2_HOME/tcl
 HALLIB_DIR=$EMC2_HOME/lib/hallib
 
+AC_DEFINE_UNQUOTED([PRELOAD_WORKAROUND], "$PRELOAD_WORKAROUND", [library pathname to LD_PRELOAD])
+
 AC_SUBST([EMC2_HOME])
 AC_SUBST([EMC2_BIN_DIR])
 AC_SUBST([EMC2_TCL_DIR])
@@ -67,6 +69,7 @@ AC_SUBST([REALTIME])
 AC_SUBST([EMC2_IMAGE_DIR])
 AC_SUBST([EMC2_TCL_LIB_DIR])
 AC_SUBST([HALLIB_DIR])
+AC_SUBST([PRELOAD_WORKAROUND])
 ##############################################################################
 # Subsection 3.6 - check for utility programs needed to build and run EMC    #
 #                                                                            #
@@ -151,6 +154,21 @@ then
     AC_MSG_ERROR([fuser not found])
 fi
 
+##############################################################################
+# Section 7 - Language support                                               #
+##############################################################################
+
+PRELOAD_WORKAROUND=`../scripts/test-libgl-bug.sh 2>/dev/null`
+if test  $? -ne 0 ; then
+   # real bad, the test failed - let me know
+   AC_MSG_RESULT([test for libgl1-mesa-dri workaround failed, please file a bug])
+   exit 1
+fi
+if test "x$PRELOAD_WORKAROUND" != "x" ; then
+   AC_MSG_RESULT(required - need to preload $PRELOAD_WORKAROUND)
+else
+   AC_MSG_RESULT(not required)
+fi
 
 ##############################################################################
 # files that get created by ./configure                                      #
