@@ -66,7 +66,200 @@ MODULE_EXT=@MODEXT@ # module extension, used when insmod'ing
 DEBUG_FILE=$(mktemp /tmp/linuxcnc.debug.XXXXXX)
 PRINT_FILE=$(mktemp /tmp/linuxcnc.print.XXXXXX)
 
+program_available () {
+    type -path "$1" > /dev/null 2>&1
+}
 
+usage () {
+	P=${0##*/}
+	cat <<EOF
+$P: Run LINUXCNC
+
+Usage:
+	$P [-d] [-v]
+		Choose the configuration file graphically
+
+	$P [-k] [-d] [-v] path/to/your.ini
+		Name the configuration file using its path
+
+	$P [-k] [-d] [-v] -l
+		Use the previous configuration file
+
+	-d: Turn on "debug" mode
+	-v: Turn on "verbose" mode
+        -k: Continue in the presence of errors in .hal files
+EOF
+}
+################################################################################
+# 1.1. strip and process command line options
+################################################################################
+while getopts "dvlhkr" opt
+do
+	case "$opt" in
+	d)
+		# enable echoing of script and command output
+		if tty -s; then
+		    DEBUG_FILE=/dev/fd/2
+		    echo "Debug mode on" >$DEBUG_FILE
+		fi
+		set -x;;
+	v)
+		# enable printing of verbose messages
+		if tty -s; then
+		    PRINT_FILE=/dev/fd/1
+		    echo "Verbose mode on" >$PRINT_FILE
+		fi;;
+        r)
+                RUNTESTS=yes
+                ;;
+	l)
+		USE_LAST_INIFILE=1;;
+        k)      DASHK=-k;;
+	h)
+		usage
+		exit 0;;
+	*)
+		usage
+		exit 1
+	esac
+done
+shift $(($OPTIND-1))
+
+case "@KERNEL_VERS@" in
+"") ;;
+"test") echo "kernel_vers=test" ;;
+*)
+    if [ `uname -r` != "@KERNEL_VERS@" ]; then
+        if tty -s; then
+            echo "LinuxCNC requires the real-time kernel @KERNEL_VERS@ to run."
+            echo "Before running LinuxCNC, reboot and choose this kernel at the boot menu."
+        else
+            @WISH@ <<EOF
+                wm wi .
+                tk_messageBox -type ok \
+                    -title LinuxCNC -icon error -title "Realtime Kernel Required" \
+                    -message {LinuxCNC requires the real-time kernel @KERNEL_VERS@ to run.  Before running LinuxCNC, reboot and choose this kernel at the boot menu.}
+                exit
+EOF
+        fi
+        exit
+    fi
+esac
+
+if [ -z $RUNTESTS ]; then
+if ! tty -s; then
+    exec 2>> $DEBUG_FILE
+    exec >> $PRINT_FILE
+fi
+fi
+
+function ErrorCheck () {
+    result=$?
+    if [ ! -z "$DISPLAY" ]; then
+        echo "catch {send -async popimage destroy .}; destroy ." | @WISH@
+    fi
+
+    if [ $result -ne 0 ]; then
+        if tty -s || [ -z "$DISPLAY" ] ; then
+            if [ -f $DEBUG_FILE ]; then
+                cp $DEBUG_FILE $HOME/linuxcnc_debug.txt
+            else
+                echo "(debug information was sent to stderr)" \
+                    > $HOME/linuxcnc_debug.txt
+            fi
+
+            if [ -f $PRINT_FILE ]; then
+                cp $PRINT_FILE $HOME/linuxcnc_print.txt
+            else
+                echo "(print information was sent to stdout)" \
+                    > $HOME/linuxcnc_print.txt
+            fi
+
+            echo "\
+LinuxCNC terminated with an error.  You can find more information in the log:
+    $HOME/linuxcnc_debug.txt
+and
+    $HOME/linuxcnc_print.txt
+as well as in the output of the shell command 'dmesg' and in the terminal"
+        else
+            @WISH@ $LINUXCNC_TCL_DIR/show_errors.tcl $DEBUG_FILE $PRINT_FILE
+        fi
+    fi
+    rm -f $DEBUG_FILE $PRINT_FILE 2>/dev/null
+    exit $result
+}
+
+trap ErrorCheck EXIT
+
+################################################################################
+# 1.3. INIFILE                           find inifile to use                   #
+################################################################################
+if [ ! -z "$1" ]; then
+    case "$1" in
+      -)  USE_LAST_INIFILE=1;;
+      /*) INIFILE="$1" ;;
+      *)  INIFILE="`pwd`/$1";;
+    esac
+    shift
+fi
+EXTRA_ARGS="$@"
+
+# 1.3.1. Determine if we have run-in place or installed system
+# run in place : true
+RUN_IN_PLACE=@RUN_IN_PLACE@
+echo RUN_IN_PLACE=$RUN_IN_PLACE >>$PRINT_FILE
+
+LINUXCNCVERSION="@EMC2VERSION@"; export LINUXCNCVERSION
+
+INIVAR=inivar
+HALCMD="halcmd $DASHK"
+PICKCONFIG="@WISH@ $LINUXCNC_TCL_DIR/bin/pickconfig.tcl"
+LINUXCNC_EMCSH=@WISH@
+
+echo LINUXCNC_DIR=$LINUXCNC_DIR >>$PRINT_FILE
+echo LINUXCNC_BIN_DIR=$LINUXCNC_BIN_DIR >>$PRINT_FILE
+echo LINUXCNC_TCL_DIR=$LINUXCNC_TCL_DIR >>$PRINT_FILE
+echo LINUXCNC_SCRIPT_DIR=$LINUXCNC_SCRIPT_DIR >>$PRINT_FILE
+echo LINUXCNC_RTLIB_DIR=$LINUXCNC_RTLIB_DIR >>$PRINT_FILE
+echo LINUXCNC_CONFIG_DIR=$LINUXCNC_CONFIG_DIR >>$PRINT_FILE
+echo LINUXCNC_LANG_DIR=$LINUXCNC_LANG_DIR >>$PRINT_FILE
+echo INIVAR=$INIVAR >>$PRINT_FILE
+echo HALCMD=$HALCMD >>$PRINT_FILE
+echo LINUXCNC_EMCSH=$LINUXCNC_EMCSH >>$PRINT_FILE
+
+#export some common directories, used by some of the GUI's
+export LINUXCNC_TCL_DIR
+export LINUXCNC_EMCSH
+export LINUXCNC_HELP_DIR
+export LINUXCNC_LANG_DIR
+export REALTIME
+export HALCMD
+export LINUXCNC_NCFILES_DIR
+
+[ -z $RUNTESTS ] && echo "LINUXCNC - $LINUXCNCVERSION" 
+
+# was an inifile specified on the command line?
+if [ ! -z "$USE_LAST_INIFILE" ]; then
+    INIFILE=$($INIVAR -ini ~/.linuxcncrc -var LAST_CONFIG -sec PICKCONFIG 2>>$DEBUG_FILE)
+    echo "Using previous inifile: $INIFILE" >> $PRINT_FILE
+fi
+
+if [ ! -n "$INIFILE" ] ; then
+    # nothing specified, get from the user
+    # it returns either a path, or nothing at all
+    INIFILE=$($PICKCONFIG)
+    # if name is xxxx.demo, then:
+    #    execute xxxx.demo in background and exit
+    if [ "${INIFILE%%.demo}".demo = "${INIFILE}" ] ; then
+      "${INIFILE}" &
+      exit 0
+    fi
+fi
+
+if [ ! -n "$INIFILE" ] ; then
+    # still nothing specified, exit
+    exit 0
+fi
 
 ################################################################################
 # 4. done with function definitions, execution resumes here

@@ -54,8 +54,10 @@ REALTIME=$EMC2_HOME/scripts/realtime
 EMC2_IMAGE_DIR=$EMC2_HOME
 EMC2_TCL_LIB_DIR=$EMC2_HOME/tcl
 HALLIB_DIR=$EMC2_HOME/lib/hallib
+WISH=$EMC2_HOME/fakebin/wish
 
 AC_DEFINE_UNQUOTED([PRELOAD_WORKAROUND], "$PRELOAD_WORKAROUND", [library pathname to LD_PRELOAD])
+
 
 AC_SUBST([EMC2_HOME])
 AC_SUBST([EMC2_BIN_DIR])
@@ -70,6 +72,7 @@ AC_SUBST([EMC2_IMAGE_DIR])
 AC_SUBST([EMC2_TCL_LIB_DIR])
 AC_SUBST([HALLIB_DIR])
 AC_SUBST([PRELOAD_WORKAROUND])
+AC_SUBST([WISH])
 ##############################################################################
 # Subsection 3.6 - check for utility programs needed to build and run EMC    #
 #                                                                            #
@@ -153,6 +156,11 @@ if test $FUSER = "none"
 then
     AC_MSG_ERROR([fuser not found])
 fi
+
+KERNEL_VERS="test"
+
+AC_MSG_RESULT([$KERNEL_VERS])
+AC_SUBST([KERNEL_VERS])
 
 ##############################################################################
 # Section 7 - Language support                                               #
