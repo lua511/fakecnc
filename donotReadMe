@@ -1,3 +1,7 @@
+#waiting for create linuxcncsvr
+I was planning to copy whole linuxcnc.in,
+now,I realized that linuxcncsvr must be created out first.
+so,just hold the horse,let's build a linuxcncsvr first.
 #now linuxcnc can use many foloder macros
 not it looks like a linuxcnc script.
 we are now focusing on linuxcnc.in,so all the changes are related to it.
