@@ -45,6 +45,7 @@ fi
 
 EMC2_HOME=${prefix}
 EMC2_BIN_DIR=${prefix}/bin
+EMC2_FAKEBIN_DIR=${prefix}/fakebin
 EMC2_TCL_DIR=${prefix}/lib/tcltk/linuxcnc
 EMC2_HELP_DIR=${prefix}/share/doc/linuxcnc
 EMC2_RTLIB_DIR=$EMC2_HOME/rtlib
@@ -54,13 +55,14 @@ REALTIME=$EMC2_HOME/scripts/realtime
 EMC2_IMAGE_DIR=$EMC2_HOME
 EMC2_TCL_LIB_DIR=$EMC2_HOME/tcl
 HALLIB_DIR=$EMC2_HOME/lib/hallib
-WISH=$EMC2_HOME/fakebin/wish
+#WISH=$EMC2_HOME/fakebin/wish
 
 AC_DEFINE_UNQUOTED([PRELOAD_WORKAROUND], "$PRELOAD_WORKAROUND", [library pathname to LD_PRELOAD])
 
 
 AC_SUBST([EMC2_HOME])
 AC_SUBST([EMC2_BIN_DIR])
+AC_SUBST([EMC2_FAKEBIN_DIR])
 AC_SUBST([EMC2_TCL_DIR])
 AC_SUBST([EMC2_HELP_DIR])
 AC_SUBST([EMC2_RTLIB_DIR])
@@ -72,7 +74,7 @@ AC_SUBST([EMC2_IMAGE_DIR])
 AC_SUBST([EMC2_TCL_LIB_DIR])
 AC_SUBST([HALLIB_DIR])
 AC_SUBST([PRELOAD_WORKAROUND])
-AC_SUBST([WISH])
+#AC_SUBST([WISH])
 ##############################################################################
 # Subsection 3.6 - check for utility programs needed to build and run EMC    #
 #                                                                            #
@@ -161,6 +163,16 @@ KERNEL_VERS="test"
 
 AC_MSG_RESULT([$KERNEL_VERS])
 AC_SUBST([KERNEL_VERS])
+
+##############################################################################
+# Section Ex - fake support                                                  #
+##############################################################################
+
+if test -f $EMC2_FAKEBIN_DIR/wish; then
+    WISH=$EMC2_FAKEBIN_DIR/wish
+fi
+
+AC_SUBST([WISH])
 
 ##############################################################################
 # Section 7 - Language support                                               #
