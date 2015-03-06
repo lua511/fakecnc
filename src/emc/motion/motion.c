@@ -1,5 +1,5 @@
 #include <stdio.h>
-int mian(int argv,char** argv){
+int main(int argv,char** argc){
     printf("hello I am motion.c\n");
     return 0;
 }
