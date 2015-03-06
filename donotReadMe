@@ -1,3 +1,5 @@
+#simplest make system
+just make the gnumake system work.
 #waiting for create linuxcncsvr
 I was planning to copy whole linuxcnc.in,
 now,I realized that linuxcncsvr must be created out first.
