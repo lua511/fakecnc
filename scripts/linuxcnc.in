@@ -158,7 +158,7 @@ fi
 function ErrorCheck () {
     result=$?
     if [ ! -z "$DISPLAY" ]; then
-        echo "catch {send -async popimage destroy .}; destroy ." | @WISH@
+        echo "catch {send -async popimage destroy .}; destroy ." | @WISH@x
     fi
 
     if [ $result -ne 0 ]; then
