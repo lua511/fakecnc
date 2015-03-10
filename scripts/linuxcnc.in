@@ -543,3 +543,10 @@ export INI_FILE_NAME="$INIFILE"
 $EMCSERVER -ini "$INIFILE" &
 sleep 1
 
+# 4.3.2. Start REALTIME
+echo "Loading Real Time OS, RTAPI, and HAL_LIB modules" >>$PRINT_FILE
+if ! $REALTIME start ; then
+    echo "Realtime system did not load"
+    Cleanup
+    exit -1
+fi
