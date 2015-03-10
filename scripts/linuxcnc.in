@@ -550,3 +550,20 @@ if ! $REALTIME start ; then
     Cleanup
     exit -1
 fi
+
+# 4.3.3. export the location of the HAL realtime modules so that
+# "halcmd loadrt" can find them
+export HAL_RTMOD_DIR=$LINUXCNC_RTLIB_DIR
+
+# 4.3.4. Run io in background if so defined in INI
+if [ "$EMCIO" != "" ] ; then
+        echo "Starting LinuxCNC IO program: $EMCIO" >>$PRINT_FILE
+        if ! program_available $EMCIO ; then
+                echo "Can't execute IO program $EMCIO"
+                Cleanup
+        exit 1
+        fi
+        $HALCMD loadusr -Wn iocontrol $EMCIO -ini "$INIFILE"
+else
+        echo "Skipping LinuxCNC IO program >>$PRINT_FILE"
+fi
