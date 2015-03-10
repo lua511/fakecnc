@@ -567,3 +567,181 @@ if [ "$EMCIO" != "" ] ; then
 else
         echo "Skipping LinuxCNC IO program >>$PRINT_FILE"
 fi
+
+# 4.3.5.0. Run halui in background, if necessary
+if [ -n "$HALUI" ] ; then
+    echo "Starting HAL User Interface program: $HALUI" >>$PRINT_FILE
+    if ! program_available $HALUI ; then
+	echo "Can't execute halui program $HALUI"
+	Cleanup
+	exit 1
+    fi
+    $HALCMD loadusr -Wn halui $HALUI -ini "$INIFILE"
+fi
+
+TWOPASS=`$INIVAR -ini "$INIFILE" -var TWOPASS -sec HAL -num 1 2> /dev/null`
+if [ -n "$TWOPASS" ] ; then
+  # if [HAL]TWOPASS is defined, handle all [HAL]HALFILE entries here:
+  CFGFILE=@EMC2_TCL_LIB_DIR@/twopass.tcl
+  export PRINT_FILE # twopass can append to PRINT_FILE
+  if ! haltcl -i "$INIFILE" $CFGFILE && [ "$DASHK" = "" ]; then
+      Cleanup
+      exit -1
+  fi
+else
+    # 4.3.6. execute HALCMD config files (if any)
+    # get first config file name from ini file
+    NUM=1
+    CFGFILE=`$INIVAR -tildeexpand -ini "$INIFILE" -var HALFILE -sec HAL -num $NUM 2> /dev/null`
+    while [ -n "$CFGFILE" ] ; do
+        IFS='\ ' read CFGFILE CFGFILE_ARGS <<< "$CFGFILE" # separate args
+        foundmsg=""
+        saveIFS=$IFS; IFS=: # colon (:) path separator for HALLIB_PATH
+        explicit_file_in_hallib=${CFGFILE#LIB:} # strip leading 'LIB:'
+        if [ -z "$explicit_file_in_hallib" ] ; then
+           echo "ILLFORMED LIB:file:<$CFGFILE>"
+        fi
+        if [ "$explicit_file_in_hallib" !=  "$CFGFILE" ] ; then
+          foundfile="$HALLIB_DIR/$explicit_file_in_hallib"
+          if [ ! -r $foundfile ] ; then
+              echo "CANNOT READ LIB:file:$foundfile"
+          fi
+          foundmsg="Found file(LIB): $foundfile"
+        else
+          if [ "${CFGFILE:0:1}" = "/" ] ; then
+            foundfile=$CFGFILE ;# absolute path specified
+            foundmsg="Found file(ABS): $foundfile"
+          else 
+            for pathdir in $HALLIB_PATH ; do
+              foundfile=$pathdir/$CFGFILE
+              if [ -r $foundfile ] ; then
+                # use first file found in HALLIB_PATH
+                if [ "${pathdir:0:1}" = "." ] ; then
+                  foundmsg="Found file(REL): $foundfile"
+                else
+                  foundmsg="Found file(lib): $foundfile"
+                fi
+                break
+              fi
+            done
+          fi
+        fi
+        [ -d $foundfile ] && foundmsg=""
+        IFS=$saveIFS
+        if [ -z "$foundmsg" ] ; then
+          echo "CANNOT FIND FILE FOR:$CFGFILE"
+          Cleanup
+          exit -1
+        fi
+        echo "$foundmsg"
+        CFGFILE="$foundfile"
+        case $CFGFILE in
+        *.tcl)
+            if ! haltcl -i "$INIFILE" $CFGFILE $CFGFILE_ARGS \
+               && [ "$DASHK" = "" ]; then
+                Cleanup
+                exit -1
+            fi
+        ;;
+        *)
+            if ! $HALCMD -i "$INIFILE" -f $CFGFILE && [ "$DASHK" = "" ]; then
+                Cleanup
+                exit -1
+            fi
+        esac
+        # get next config file name from ini file
+        NUM=$(($NUM+1))
+        CFGFILE=`$INIVAR -tildeexpand -ini "$INIFILE" -var HALFILE -sec HAL -num $NUM 2> /dev/null`
+    done
+fi
+
+# 4.3.7. execute discrete HAL commands from ini file (if any)
+# get first command from ini file
+NUM=1
+HALCOMMAND=`$INIVAR -ini "$INIFILE" -var HALCMD -sec HAL -num $NUM 2> /dev/null`
+while [ -n "$HALCOMMAND" ] ; do
+    if [ -n "$HALCOMMAND" ] ; then
+	echo "Running HAL command: $HALCOMMAND" >>$PRINT_FILE
+	if ! $HALCMD $HALCOMMAND && [ "$DASHK" = "" ]; then
+	    echo "ini file HAL command $HALCOMMAND failed."
+	    Cleanup
+	    exit -1
+	fi
+    fi
+    # get next command from ini file
+    NUM=$(($NUM+1))
+    HALCOMMAND=`$INIVAR -ini "$INIFILE" -var HALCMD -sec HAL -num $NUM 2> /dev/null`
+done
+
+# 4.3.8. start the realtime stuff ticking
+$HALCMD start
+
+# 4.3.9. Run task in background
+echo "Starting TASK program: $EMCTASK" >>$PRINT_FILE
+if ! program_available $EMCTASK ; then
+    echo "Can't execute TASK program $EMCTASK"
+    Cleanup
+    exit 1
+fi
+
+# setup LD_PRELOAD  if deemed necessary by configure
+unset LD_PRELOAD
+if [ -n "$PRELOAD_WORKAROUND" ] ; then
+	export LD_PRELOAD=$PRELOAD_WORKAROUND
+fi
+
+$EMCTASK -ini "$INIFILE" &
+
+# 4.3.9.1. run other applications
+run_applications
+
+# 4.3.10. Run display in foreground
+echo "Starting DISPLAY program: $EMCDISPLAY" >>$PRINT_FILE
+result=0
+case $EMCDISPLAY in
+  tklinuxcnc|mini)
+    # tklinuxcnc and mini are in the tcl directory, not the bin directory
+    if [ ! -x $LINUXCNC_TCL_DIR/$EMCDISPLAY.tcl ] ; then
+	echo "Can't execute DISPLAY program $LINUXCNC_TCL_DIR/$EMCDISPLAY.tcl $EMCDISPLAYARGS"
+	Cleanup
+	exit 1
+    fi
+    $LINUXCNC_TCL_DIR/$EMCDISPLAY.tcl -ini "$INIFILE" $EMCDISPLAYARGS
+    result=$?
+  ;;
+  dummy)
+    # dummy display just waits for <ENTER>
+    echo "DUMMY DISPLAY MODULE, press <ENTER> to continue."
+    read foo;
+  ;;
+  keystick)
+    if ! program_available keystick ; then
+	echo "Can't execute DISPLAY program $EMCDISPLAY $EMCDISPLAYARGS $EXTRA_ARGS"
+	Cleanup
+	exit 1
+    fi
+    if [ ! -z "$DISPLAY" ]; then
+        xterm -xrm 'XTerm*metaSendsEscape:false' -ls -e keystick -ini "$INIFILE"
+    else
+        keystick -ini "$INIFILE"
+    fi
+    result=$?
+  ;;
+  *)
+    # all other displays are assumed to be commands on the PATH
+    if ! program_available $EMCDISPLAY; then
+        echo "Can't execute DISPLAY program $EMCDISPLAY $EMCDISPLAYARGS $EXTRA_ARGS"
+        Cleanup
+        exit 1
+    fi
+    $EMCDISPLAY -ini "$INIFILE" $EMCDISPLAYARGS $EXTRA_ARGS
+    result=$?
+  ;;
+esac
+
+# the display won't return until you shut it down,
+# so when you get here it's time to clean up
+Cleanup
+
+exit $result
+
