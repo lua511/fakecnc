@@ -16,3 +16,4 @@ src/libnml/inifile/inivar
 src/fakesrc/wish
 bin
 fakebin
+src/emc/task/fmilltask

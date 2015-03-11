@@ -1,5 +1,5 @@
 #include <stdio.h>
 int main(int v,char** c){
-    printf("inivar-tv\n");
+    printf("fmilltask\n");
     return 0;
 }
