@@ -1,3 +1,7 @@
+#it's time to use makefile.inc
+to many bin/script were faked,we need global path in makefile(submake like)
+it's a great time to introduce makefile.inc
+just for get global path
 #turn to halcmd/loadusr/io
 to many things to do before continue
 #here is linuxcncsvr
