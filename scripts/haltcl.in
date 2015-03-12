@@ -1,0 +1,6 @@
+#!/bin/bash
+#note just fake the command: haltcl,
+#!@TCLSH@
+
+echo "i am haltcl from shell"
+exit 0
