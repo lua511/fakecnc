@@ -1,6 +1,8 @@
+include ../../Makefile.inc
+
 all: fakemilltask.c
-	cc -o fmilltask fakemilltask.c
-	cp fmilltask ../../../bin/
+	$(CC) -o fmilltask fakemilltask.c
+	cp fmilltask $(BIN_DIR)
 clean:
 	rm -rf fmilltask
-	rm -rf ../../../bin/fmilltask
+	rm -rf $(BIN_DIR)/fmilltask

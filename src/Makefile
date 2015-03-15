@@ -1,12 +1,18 @@
 include Makefile.inc
 
+SUBDIRS := \
+	emc/motion emc/task \
+	fakesrc libnml/inifile \
+
+
 all clean: bindir fakedir
-	(cd emc; make $@)
-	(cd fakesrc; make $@)
-	(cd libnml/inifile; make $@)
-bindir: | ../bin/
-../bin/:
+	for dir in $(SUBDIRS); do (cd $$dir; make $@); done
+#	(cd emc; make $@)
+#	(cd fakesrc; make $@)
+#	(cd libnml/inifile; make $@)
+bindir: | $(BIN_DIR)
+$(BIN_DIR):
 	mkdir -p $@
-fakedir: | ../fakebin/
-../fakebin/:
+fakedir: | $(FAKEBIN_DIR)
+$(FAKEBIN_DIR):
 	mkdir -p $@

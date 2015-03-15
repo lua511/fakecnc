@@ -1,16 +1,22 @@
+include ../../Makefile.inc
 
-all: motion
-	cc -o motion motion.c
-	cp motion ../../../bin/
-	cc -o linuxcncsvr linuxcncsvr.c
-	cp linuxcncsvr ../../../bin/
-	cc -o io io.c
-	cp io ../../../bin/
-	cc -o halcmd halcmd.c
-	cp halcmd ../../../bin/
+SRCS := \
+	motion.c linuxcncsvr.c io.c halcmd.c \
+
+
+OBJS := $(patsubst %.c, %, $(SRCS))
+
+BINOBJS := $(patsubst %.c,$(BIN_DIR)/%,$(SRCS))
+
+
+all: OBJ2
+
+OBJ1: $(OBJS)
+	$(foreach i,$(OBJS),$(CC) -o $(i) $(i).c;)
+
+OBJ2: OBJ1
+	$(foreach i,$(OBJS),cp $i $(BIN_DIR)/$i;)
+
 clean:
-	rm -rf motion	
-	rm -rf ../../../bin/linuxcncsvr
-	rm -rf ../../../bin/motion
-	rm -rf ../../../bin/io
-	rm -rf ../../../bin/halcmd
+	@$(foreach i,$(OBJS),rm -rf $(i);)
+	@$(foreach i,$(BINOBJS),rm -rf $(i);)

@@ -1,7 +1,11 @@
+include ../../Makefile.inc
+
+BINTAR := inivar
+
 all: inivar.c
-	cc -o inivar inivar.c
-	cp inivar ../../../bin/
+	cc -o $(BINTAR) inivar.c
+	cp $(BINTAR) $(BIN_DIR)/
 
 clean:
-	rm -rf inivar
-	rm -rf ../../../bin/inivar
+	rm -rf $(BINTAR)
+	rm -rf $(BIN_DIR)/$(BINTAR)

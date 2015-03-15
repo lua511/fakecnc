@@ -6,16 +6,13 @@
 # Directories
 #############
 
-EMC2_HOME = @EMC2_HOME@
 BIN_DIR   = @EMC2_HOME@/bin
-LIB_DIR   = @EMC2_HOME@/lib
 FAKEBIN_DIR = @EMC2_HOME@/fakebin
+SRC_DIR = @EMC2_HOME@/src
 
 # Standard configure directories
 
 prefix = @prefix@
-
-
 exec_prefix = @exec_prefix@
 
 CC = @CC@
