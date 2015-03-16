@@ -659,6 +659,8 @@ fi
 # get first command from ini file
 NUM=1
 HALCOMMAND=`$INIVAR -ini "$INIFILE" -var HALCMD -sec HAL -num $NUM 2> /dev/null`
+#hacked by winter.
+HALCOMMAND=""
 while [ -n "$HALCOMMAND" ] ; do
     if [ -n "$HALCOMMAND" ] ; then
 	echo "Running HAL command: $HALCOMMAND" >>$PRINT_FILE
@@ -693,7 +695,8 @@ fi
 $EMCTASK -ini "$INIFILE" &
 
 # 4.3.9.1. run other applications
-run_applications
+#hacked by winter
+#run_applications
 
 # 4.3.10. Run display in foreground
 echo "Starting DISPLAY program: $EMCDISPLAY" >>$PRINT_FILE
@@ -712,6 +715,11 @@ case $EMCDISPLAY in
   dummy)
     # dummy display just waits for <ENTER>
     echo "DUMMY DISPLAY MODULE, press <ENTER> to continue."
+    read foo;
+  ;;
+  testnothing)
+    # hacked by.. yeah,added by winter
+    echo "TEST NOTHING,press <ENTER> to continue."
     read foo;
   ;;
   keystick)
