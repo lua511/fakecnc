@@ -1,3 +1,5 @@
+#linuxcnc.in ready
+I think,maybe,I will do some ui work.
 #it's time to use makefile.inc
 to many bin/script were faked,we need global path in makefile(submake like)
 it's a great time to introduce makefile.inc
