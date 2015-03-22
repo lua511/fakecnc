@@ -717,11 +717,11 @@ case $EMCDISPLAY in
     echo "DUMMY DISPLAY MODULE, press <ENTER> to continue."
     read foo;
   ;;
-  testnothing)
-    # hacked by.. yeah,added by winter
-    echo "TEST NOTHING,press <ENTER> to continue."
-    read foo;
-  ;;
+#  testnothing)
+#    # hacked by.. yeah,added by winter
+#    echo "TEST NOTHING,press <ENTER> to continue."
+#    read foo;
+#  ;;
   keystick)
     if ! program_available keystick ; then
 	echo "Can't execute DISPLAY program $EMCDISPLAY $EMCDISPLAYARGS $EXTRA_ARGS"

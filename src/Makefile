@@ -3,6 +3,7 @@ include Makefile.inc
 SUBDIRS := \
 	emc/motion emc/task \
 	fakesrc libnml/inifile \
+	emc/usr_intf/testnothing \
 
 
 all clean: bindir fakedir
