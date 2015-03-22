@@ -1,0 +1,14 @@
+on ubuntu 12.04 x86
+apt-get install tcl
+#apt-get install tcl-dev
+apt-get install tk-dev
+
+check
+
+which tclsh
+/usr/bin/tclsh
+which wish
+/usr/bin/wish
+
+
+
