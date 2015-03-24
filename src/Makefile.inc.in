@@ -9,6 +9,7 @@
 BIN_DIR   = @EMC2_HOME@/bin
 FAKEBIN_DIR = @EMC2_HOME@/fakebin
 SRC_DIR = @EMC2_HOME@/src
+PYTHON_INCLUDE = @PYTHON_HEAD@ 
 
 # Standard configure directories
 

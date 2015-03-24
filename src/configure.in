@@ -56,6 +56,7 @@ EMC2_IMAGE_DIR=$EMC2_HOME
 EMC2_TCL_LIB_DIR=$EMC2_HOME/tcl
 HALLIB_DIR=$EMC2_HOME/lib/hallib
 #WISH=$EMC2_HOME/fakebin/wish
+PYTHON_HEAD="/usr/include/python2.7"
 
 AC_DEFINE_UNQUOTED([PRELOAD_WORKAROUND], "$PRELOAD_WORKAROUND", [library pathname to LD_PRELOAD])
 
@@ -74,6 +75,7 @@ AC_SUBST([EMC2_IMAGE_DIR])
 AC_SUBST([EMC2_TCL_LIB_DIR])
 AC_SUBST([HALLIB_DIR])
 AC_SUBST([PRELOAD_WORKAROUND])
+AC_SUBST([PYTHON_HEAD])
 #AC_SUBST([WISH])
 ##############################################################################
 # Subsection 3.6 - check for utility programs needed to build and run EMC    #
