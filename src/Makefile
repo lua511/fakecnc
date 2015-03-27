@@ -4,6 +4,8 @@ SUBDIRS := \
 	emc/motion emc/task \
 	fakesrc libnml/inifile \
 	emc/usr_intf/testnothing \
+	emc/usr_intf/Makefile \
+
 
 
 all clean: bindir fakedir
