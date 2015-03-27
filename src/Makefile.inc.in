@@ -22,3 +22,5 @@ exec_prefix = @exec_prefix@
 
 CC = @CC@
 CXX = @CXX@
+
+LINKSO = -shared -Wl,-soname

@@ -22,3 +22,4 @@ src/emc/usr_intf/testnothing/testnothing
 lib/python
 *.o
 *.so
+*~

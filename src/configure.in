@@ -198,6 +198,15 @@ else
    AC_MSG_RESULT(not required)
 fi
 
+AH_TOP([
+#ifndef EMC2_CONFIG_H
+#define EMC2_CONFIG_H
+
+#define LINELEN 255
+
+
+#endif
+])
 ##############################################################################
 # files that get created by ./configure                                      #
 ##############################################################################
