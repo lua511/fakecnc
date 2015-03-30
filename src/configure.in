@@ -59,7 +59,7 @@ HALLIB_DIR=$EMC2_HOME/lib/hallib
 PYTHON_HEAD="/usr/include/python2.7"
 GL_HEAD="/usr/include"
 TCL_HEAD="/usr/include/tcl8.5"
-
+DEFAULT_NMLFILE=$EMC_HOME/configs/common/linuxcnc.nml
 
 AC_DEFINE_UNQUOTED([PRELOAD_WORKAROUND], "$PRELOAD_WORKAROUND", [library pathname to LD_PRELOAD])
 
@@ -81,6 +81,8 @@ AC_SUBST([PRELOAD_WORKAROUND])
 AC_SUBST([PYTHON_HEAD])
 AC_SUBST([GL_HEAD])
 AC_SUBST([TCL_HEAD])
+AC_DEFINE_UNQUOTED([EMC2_DEFAULT_NMLFILE], "$DEFAULT_NMLFILE", [Default nml file])
+
 #AC_SUBST([WISH])
 ##############################################################################
 # Subsection 3.6 - check for utility programs needed to build and run EMC    #

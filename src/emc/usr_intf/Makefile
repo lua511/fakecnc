@@ -8,7 +8,8 @@ $(KEYSTICK): keystick
 	@cp keystick $(KEYSTICK)
 
 keystick : keystick.cc
-	@$(CC) -o keystick keystick.cc
+	@$(CC) -o keystick $(IFLAG) keystick.cc $(LIB_DIR)/linuxcnc.a
 
 clean:
-	@echo "this is clean"
+	@rm -rf keystick
+	@rm -rf $(KEYSTICK)

@@ -23,3 +23,6 @@ lib/python
 *.o
 *.so
 *~
+*.a
+include
+src/emc/usr_intf/keystick

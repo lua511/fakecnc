@@ -8,7 +8,9 @@
 
 BIN_DIR   = @EMC2_HOME@/bin
 FAKEBIN_DIR = @EMC2_HOME@/fakebin
+INCLUDE_DIR = @EMC2_HOME@/include
 SRC_DIR = @EMC2_HOME@/src
+LIB_DIR = @EMC2_HOME@/lib
 PYTHON_INCLUDE = @PYTHON_HEAD@
 GL_INCLUDE = @GL_HEAD@
 TCL_INCLUDE = @TCL_HEAD@
@@ -22,5 +24,5 @@ exec_prefix = @exec_prefix@
 
 CC = @CC@
 CXX = @CXX@
-
+IFLAG = -I@EMC2_HOME@/include
 LINKSO = -shared -Wl,-soname

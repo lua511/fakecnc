@@ -2,20 +2,32 @@ include Makefile.inc
 
 SUBDIRS := \
 	emc/motion emc/task \
-	fakesrc libnml/inifile \
+	fakesrc libnml/inifile emc_nml_intf\
 	emc/usr_intf/testnothing \
-	emc/usr_intf/Makefile \
+	emc/usr_intf \
 
 
+HEADERS := \
+	config.h \
+	emc/nml_intf/emcglb.h \
 
-all clean: bindir fakedir
+
+HEADS := $(notdir $(HEADERS))
+
+.PHONY: FORCE_CPI all clean
+
+all: FORCE_CPI
+	@test -d $(BIN_DIR) || \
+		(echo "mkdir $(BIN_DIR)" &&  mkdir -p $(BIN_DIR))
+	@test -d $(FAKEBIN_DIR) || \
+		(echo "mkdir $(FAKEBIN_DIR)" && mkdir -p $(FAKEBIN_DIR))
+	@test -d $(LIB_DIR) || \
+		(echo "mkdir $(LIB_DIR)" && mkdir -p $(LIB_DIR))
 	for dir in $(SUBDIRS); do (cd $$dir; make $@); done
-#	(cd emc; make $@)
-#	(cd fakesrc; make $@)
-#	(cd libnml/inifile; make $@)
-bindir: | $(BIN_DIR)
-$(BIN_DIR):
-	mkdir -p $@
-fakedir: | $(FAKEBIN_DIR)
-$(FAKEBIN_DIR):
-	mkdir -p $@
+clean:
+	for dir in $(SUBDIRS); do (cd $$dir; make $@); done
+
+FORCE_CPI:
+	@test -d $(INCLUDE_DIR) || \
+		(echo mkdir $(INCLUDE_DIR) ; mkdir -p $(INCLUDE_DIR))
+	@$(foreach h,$(HEADERS),cp -f $(h) $(INCLUDE_DIR)/;)
