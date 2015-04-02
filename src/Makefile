@@ -10,6 +10,13 @@ SUBDIRS := \
 HEADERS := \
 	config.h \
 	emc/nml_intf/emcglb.h \
+	libnml/inifile/inifile.hh \
+	libnml/inifile/inifile.h \
+	emc/nml_intf/emccfg.h \
+	emc/motion/emcmotcfg.h \
+	libnml/posemath/posemath.h \
+	emc/nml_intf/emcpos.h \
+
 
 
 HEADS := $(notdir $(HEADERS))

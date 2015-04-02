@@ -8,7 +8,7 @@ $(KEYSTICK): keystick
 	@cp keystick $(KEYSTICK)
 
 keystick : keystick.cc
-	@$(CC) -o keystick $(IFLAG) keystick.cc $(LIB_DIR)/linuxcnc.a
+	@$(CC) -o keystick $(IFLAG) $(LINKSO) keystick.cc $(LIB_DIR)/linuxcnc.a
 
 clean:
 	@rm -rf keystick
