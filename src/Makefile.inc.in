@@ -23,6 +23,10 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 
 CC = @CC@
-CXX = @CXX@
+# sorry for this, todo: make my @@ back
+CXX = g++
 IFLAG = -I@EMC2_HOME@/include
 LINKSO = -shared -Wl,-soname
+TOOBJS = $(patsubst %.cc,objects/%.o,$(patsubst %.c,objects/%.o,$(1)))
+TODEPS = $(patsubst %.cc,objects/%.d,$(patsubst %.c,objects/%.d,$(1)))
+TOOBJSDEPS = $(call TOOBJS,$(1)) $(call TODEPS, $(1)) $(patsubst %.cc,%.ii,$(patsubst %.c,%.i,$(1)))

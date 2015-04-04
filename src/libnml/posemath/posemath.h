@@ -10,4 +10,8 @@ extern "C" {
 
     } PmCartesian;
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif

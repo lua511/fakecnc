@@ -5,30 +5,30 @@ include ../../Makefile.inc
 MYPATH := $(SRC_DIR)/libnml/inifile
 
 BINVAR := inivar
-LIBVAR := liblinuxcncini.so
+LIBVAR := linuxcncini.a
 
-IHEAD := -I$(MYPATH) -I$(SRC_DIR)
+IHEAD := -I$(INCLUDE_DIR)
 
-all: $(LIB_DIR)/$(LIBVAR).0 $(BIN_DIR)/$(BINVAR)
-	echo $(BIN_DIR)/$(BINVAR)
+all: lib $(BIN_DIR)/$(BINVAR)
 
 $(BIN_DIR)/$(BINVAR) : $(BINVAR)
-	@cp $(BINVAR) $(BIN_DIR)/
+	@cp $< $@
 
-$(BINVAR): inivar.c
-	$(CXX) -o $(BINVAR) $(IHEAD) $(LINKSO) inivar.c
-	cp $(BINVAR) $(BIN_DIR)/
+$(BINVAR): inivar.c lib
+	$(CXX) -o $@ $(IHEAD) $< $(LIB_DIR)/$(LIBVAR)
 
-lib:$(LIB_DIR)/$(LIBVAR).0
+lib: $(LIB_DIR)/$(LIBVAR)
 
-$(LIB_DIR)/$(LIBVAR).0: $(LIBVAR)
-	@cp $(LIBVAR) $(LIB_DIR)/$(LIBVAR).0
+$(LIB_DIR)/$(LIBVAR): $(LIBVAR)
+	@cp $< $@
 	
-$(LIBVAR): inifile.cc
-	@$(CXX) -shared -o $(LIBVAR) $(IHEAD) inifile.cc
+$(LIBVAR): inifile.o
+	@$(AR) -cr linuxcncini.a $<
+inifile.o: inifile.cc
+	@$(CXX) -c -o inifile.o $(IHEAD) $<
 
 clean:
 	rm -rf $(BINVAR)
 	rm -rf $(BIN_DIR)/$(BINVAR)
-	rm -rf $(LIB_DIR)/$(LIBVAR).0
+	rm -rf $(LIB_DIR)/$(LIBVAR)
 	rm -rf $(LIBVAR)

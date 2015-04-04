@@ -3,11 +3,11 @@
 
 #include "posemath.h"		/* PmCartesian */
 
-typedef struct EmcPose {
+struct EmcPose {
     PmCartesian tran;
     double a, b, c;
     double u, v, w;
-} EmcPose;
+};
 
 #define ZERO_EMC_POSE(pos) do { \
 pos.tran.x = 0.0;               \

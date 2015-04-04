@@ -1,5 +1,6 @@
 #include "emcglb.h"		/* these decls */
 #include "emccfg.h"
+#include "emcpos.h"
 
 char emc_inifile[LINELEN] = DEFAULT_EMC_INIFILE;
 
@@ -8,7 +9,7 @@ char emc_nmlfile[LINELEN] = DEFAULT_EMC_NMLFILE;
 char rs274ngc_startup_code[LINELEN] =
     DEFAULT_RS274NGC_STARTUP_CODE;
 
-int emc_debug = 0;		/* initially no debug messages */
+int emc_debug = 0;		// initially no debug messages
 
 double emc_task_cycle_time = DEFAULT_EMC_TASK_CYCLE_TIME;
 
@@ -21,13 +22,11 @@ char tool_table_file[LINELEN] = DEFAULT_TOOL_TABLE_FILE;
 double traj_default_velocity = DEFAULT_TRAJ_DEFAULT_VELOCITY;
 double traj_max_velocity = DEFAULT_TRAJ_MAX_VELOCITY;
 
-double axis_max_velocity[EMC_AXIS_MAX] = { 1.0 };	/*! \todo FIXME - I think
-							   these should be
-							   0.0 */
+double axis_max_velocity[EMC_AXIS_MAX] = { 1.0 };	//
 double axis_max_acceleration[EMC_AXIS_MAX] = { 1.0 };
 
-EmcPose tool_change_position;	/* no defaults */
-unsigned char have_tool_change_position = 0;	/* default is 'not there' */
+EmcPose tool_change_position;	// no defaults
+unsigned char have_tool_change_position = 0;	// default is 'not there'
 
 int taskplanopen = 0;
 
@@ -39,3 +38,4 @@ void emcInitGlobals()
 	axis_max_velocity[t] = DEFAULT_AXIS_MAX_VELOCITY;
     }
 }
+
