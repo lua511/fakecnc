@@ -62,13 +62,23 @@ static int iniLoad(const char *filename)
   char version[LINELEN] = "";
   char displayString[LINELEN] = "";
   int jogPol;
+  int isdebug;
 
   // open it
   if (!inifile.Open(filename))
     {
       return -1;
     }
-
+  
+  isdebug = 0;
+  if((inistring = inifile.Find("DEBUG","DEBUG")))
+  {
+	  if (! strcmp(inistring, "TRUE"))
+	  {
+		  isdebug = 1;
+	  }
+  }
+  
   if ((inistring = inifile.Find("MACHINE", "EMC")))
     {
       strcpy(machine, inistring);
@@ -80,6 +90,8 @@ static int iniLoad(const char *filename)
           sprintf(version_string, "%s EMC Version %s", machine, version);
         }
     }
+  if(isdebug) printf("%s\n",version_string);
+  
 
   if ((inistring = inifile.Find("MAX_VELOCITY", "TRAJ")))
     {
@@ -92,7 +104,8 @@ static int iniLoad(const char *filename)
     {
       traj_max_velocity = DEFAULT_TRAJ_MAX_VELOCITY;
     }
-
+  if(isdebug) printf("traj_max_velocity %.4f\n",traj_max_velocity);
+	
   if ((inistring = inifile.Find("PROGRAM_PREFIX", "DISPLAY")))
     {
       if (1 != sscanf(inistring, "%s", programPrefix))
@@ -104,7 +117,8 @@ static int iniLoad(const char *filename)
     {
       programPrefix[0] = 0;
     }
-
+  if(isdebug) printf("programPrefix %s\n",programPrefix);
+  
   if ((inistring = inifile.Find("POSITION_OFFSET", "DISPLAY")))
     {
       if (1 == sscanf(inistring, "%s", displayString))
@@ -135,7 +149,8 @@ static int iniLoad(const char *filename)
       // no line at all
       // ignore
     }
-
+  if(isdebug) printf("displayString %s,%d",displayString,coords);
+  
   if ((inistring = inifile.Find("POSITION_FEEDBACK", "DISPLAY")))
     {
       if (1 == sscanf(inistring, "%s", displayString))
@@ -166,7 +181,8 @@ static int iniLoad(const char *filename)
       // no line at all
       // ignore
     }
-
+  if(isdebug) printf("displayString %s,%d\n",displayString,posDisplay);
+  
   xJogPol = 1;                  // set to default
   if ((inistring = inifile.Find("JOGGING_POLARITY", "AXIS_0")) &&
       1 == sscanf(inistring, "%d", &jogPol) &&
@@ -175,7 +191,8 @@ static int iniLoad(const char *filename)
       // it read as 0, so override default
       xJogPol = 0;
     }
-
+  if(isdebug) printf("xJogPol %d\n",xJogPol);
+  
   yJogPol = 1;                  // set to default
   if ((inistring = inifile.Find("JOGGING_POLARITY", "AXIS_1")) &&
       1 == sscanf(inistring, "%d", &jogPol) &&
@@ -184,7 +201,8 @@ static int iniLoad(const char *filename)
       // it read as 0, so override default
       yJogPol = 0;
     }
-
+  if(isdebug) printf("yJogPol %d\n",yJogPol);
+  
   zJogPol = 1;                  // set to default
   if ((inistring = inifile.Find("JOGGING_POLARITY", "AXIS_2")) &&
       1 == sscanf(inistring, "%d", &jogPol) &&
@@ -193,7 +211,7 @@ static int iniLoad(const char *filename)
       // it read as 0, so override default
       zJogPol = 0;
     }
-
+  if(isdebug) printf("zJogPol %d\n",zJogPol);
   // close it
   inifile.Close();
 
@@ -216,7 +234,6 @@ int main(int argc, char *argv[])
   //char keystick[] = "keystick";
   int charHandled;
 
-  
   // process command line args, indexing argv[] from [1]
   for (t = 1; t < argc; t++)
     {
@@ -320,6 +337,7 @@ int main(int argc, char *argv[])
         }
 
     }
+  printf("the inifile %s\n",emc_inifile);
   iniLoad(emc_inifile);
 	printf("hello\n");
 	return 0;
