@@ -54,6 +54,7 @@ static char *upcase(char *string)
   return string;
 }
 
+int ISDEBUG = 0;
 static int iniLoad(const char *filename)
 {
   IniFile inifile;
@@ -62,22 +63,14 @@ static int iniLoad(const char *filename)
   char version[LINELEN] = "";
   char displayString[LINELEN] = "";
   int jogPol;
-  int isdebug;
-
+  int isdebug = ISDEBUG;
   // open it
   if (!inifile.Open(filename))
     {
+	  if(isdebug) printf("cann't load file\n");
       return -1;
     }
-  
-  isdebug = 0;
-  if((inistring = inifile.Find("DEBUG","DEBUG")))
-  {
-	  if (! strcmp(inistring, "TRUE"))
-	  {
-		  isdebug = 1;
-	  }
-  }
+ 
   
   if ((inistring = inifile.Find("MACHINE", "EMC")))
     {
@@ -90,7 +83,7 @@ static int iniLoad(const char *filename)
           sprintf(version_string, "%s EMC Version %s", machine, version);
         }
     }
-  if(isdebug) printf("%s\n",version_string);
+  if(isdebug) printf("version_string [%s]\n",version_string);
   
 
   if ((inistring = inifile.Find("MAX_VELOCITY", "TRAJ")))
@@ -104,7 +97,7 @@ static int iniLoad(const char *filename)
     {
       traj_max_velocity = DEFAULT_TRAJ_MAX_VELOCITY;
     }
-  if(isdebug) printf("traj_max_velocity %.4f\n",traj_max_velocity);
+  if(isdebug) printf("traj_max_velocity [%.4f]\n",traj_max_velocity);
 	
   if ((inistring = inifile.Find("PROGRAM_PREFIX", "DISPLAY")))
     {
@@ -117,7 +110,7 @@ static int iniLoad(const char *filename)
     {
       programPrefix[0] = 0;
     }
-  if(isdebug) printf("programPrefix %s\n",programPrefix);
+  if(isdebug) printf("programPrefix [%s]\n",programPrefix);
   
   if ((inistring = inifile.Find("POSITION_OFFSET", "DISPLAY")))
     {
@@ -149,7 +142,7 @@ static int iniLoad(const char *filename)
       // no line at all
       // ignore
     }
-  if(isdebug) printf("displayString %s,%d",displayString,coords);
+  if(isdebug) printf("displayString [%s],coords [%d]\n",displayString,coords);
   
   if ((inistring = inifile.Find("POSITION_FEEDBACK", "DISPLAY")))
     {
@@ -181,9 +174,10 @@ static int iniLoad(const char *filename)
       // no line at all
       // ignore
     }
-  if(isdebug) printf("displayString %s,%d\n",displayString,posDisplay);
+  if(isdebug) printf("displayString [%s],pos display [%d]\n",displayString,posDisplay);
   
   xJogPol = 1;                  // set to default
+  jogPol = 0;
   if ((inistring = inifile.Find("JOGGING_POLARITY", "AXIS_0")) &&
       1 == sscanf(inistring, "%d", &jogPol) &&
       jogPol == 0)
@@ -191,9 +185,10 @@ static int iniLoad(const char *filename)
       // it read as 0, so override default
       xJogPol = 0;
     }
-  if(isdebug) printf("xJogPol %d\n",xJogPol);
+  if(isdebug) printf("xJogPol [%d]\n",jogPol);
   
   yJogPol = 1;                  // set to default
+  jogPol = 0;
   if ((inistring = inifile.Find("JOGGING_POLARITY", "AXIS_1")) &&
       1 == sscanf(inistring, "%d", &jogPol) &&
       jogPol == 0)
@@ -201,9 +196,10 @@ static int iniLoad(const char *filename)
       // it read as 0, so override default
       yJogPol = 0;
     }
-  if(isdebug) printf("yJogPol %d\n",yJogPol);
+  if(isdebug) printf("yJogPol [%d]\n",jogPol);
   
   zJogPol = 1;                  // set to default
+  jogPol = 0;
   if ((inistring = inifile.Find("JOGGING_POLARITY", "AXIS_2")) &&
       1 == sscanf(inistring, "%d", &jogPol) &&
       jogPol == 0)
@@ -211,7 +207,7 @@ static int iniLoad(const char *filename)
       // it read as 0, so override default
       zJogPol = 0;
     }
-  if(isdebug) printf("zJogPol %d\n",zJogPol);
+  if(isdebug) printf("zJogPol [%d]\n",jogPol);
   // close it
   inifile.Close();
 
@@ -221,6 +217,7 @@ static int iniLoad(const char *filename)
 int main(int argc, char *argv[])
 {
   int dump = 0;
+  int usage = 0;
   struct winsize size;
   int curx, cury;
   int t;
@@ -233,7 +230,7 @@ int main(int argc, char *argv[])
         IACT_END} interactive = IACT_NONE;
   //char keystick[] = "keystick";
   int charHandled;
-
+  ISDEBUG = 0;
   // process command line args, indexing argv[] from [1]
   for (t = 1; t < argc; t++)
     {
@@ -244,7 +241,16 @@ int main(int argc, char *argv[])
           t++;          // step over nmlfile
           continue;
         }
-
+	  if(!strcmp(argv[t],"-h") || !strcmp(argv[t],"--help"))
+	  {
+		  usage = 1;
+		  break;
+	  }
+	  if(!strcmp(argv[t],"--debug"))
+	  {
+		  ISDEBUG = 1;
+		  continue;
+	  }
       // try -nml
       if (!strcmp(argv[t], "-nml"))
         {
@@ -337,8 +343,14 @@ int main(int argc, char *argv[])
         }
 
     }
+  if(usage)
+  {
+	  printf("usage:\n");
+	  printf("%s \n",argv[0]);
+	  printf("\tuse full path for ini file\n");
+  }
   printf("the inifile %s\n",emc_inifile);
   iniLoad(emc_inifile);
-	printf("hello\n");
-	return 0;
+
+  return 0;
 }
