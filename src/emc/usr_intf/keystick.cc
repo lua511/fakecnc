@@ -3,6 +3,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>          // ioctl(), TIOCGWINSZ, struct winsize
+#include <signal.h>
+#include <sys/time.h>
+#include <unistd.h>             // STDIN_FILENO
+#include <ncurses.h>
 
 #include "emcglb.h"
 #include "emccfg.h"             // DEFAULT_TRAJ_MAX_VELOCITY
@@ -10,6 +14,7 @@
 
 #define INTERRUPT_USECS 50000
 static int usecs = INTERRUPT_USECS;
+static chtype ch = 0, oldch = 0;
 
 #define ASCLINELEN 80
 // key repeat delays, in microseconds
@@ -37,6 +42,20 @@ static int zJogPol = 1;
 
 static int catchErrors = 1;
 
+static WINDOW * window = 0;
+static WINDOW * helpwin = 0;
+static WINDOW * diagwin = 0;
+static WINDOW * toolwin = 0;
+static WINDOW * logwin = 0;
+static WINDOW * progwin = 0;
+
+static int wbegy, wbegx;
+static int wmaxy, wmaxx;
+#define ASCLINELEN 80
+static char line_blank[ASCLINELEN + 1];
+// bottom string gill be set to "---Machine Version---"
+static char bottom_string[ASCLINELEN + 1] = "";
+
 // string for ini file version num
 static char version_string[LINELEN] = "";
 
@@ -52,6 +71,67 @@ static char *upcase(char *string)
     }
 
   return string;
+}
+static void idleHandler()
+{
+	
+}
+/*
+  startTimer starts the timer to generate SIGALRM events, or stops the timer
+  if 'us' is 0. Enable a signal handler for SIGALRM before you call this.
+*/
+void startTimer(int us)
+{
+  struct itimerval value;
+
+  value.it_interval.tv_sec = 0;
+  value.it_interval.tv_usec = us;
+  value.it_value.tv_sec = 0;
+  value.it_value.tv_usec = us;
+
+  setitimer(ITIMER_REAL, &value, 0);
+}
+
+int sigpipe[2];
+static void alarmHandler(int sig, siginfo_t *unused, void *unused2)
+{
+  char ch = 0;
+  write(sigpipe[1], &ch, 1);
+}
+
+static int done = 0;
+
+static void quit(int sig)
+{
+  exit(0);
+}
+
+int getch_and_idle()
+{
+  fd_set readfds;
+  while (1)
+    {
+      FD_ZERO(&readfds);
+      FD_SET(0, &readfds);
+      FD_SET(sigpipe[0], &readfds);
+
+      select(sigpipe[0] + 1, &readfds, NULL, NULL, NULL);
+
+      if(FD_ISSET(sigpipe[0], &readfds))
+        {
+          char buf;
+          read(sigpipe[0], &buf, 1);
+          idleHandler();
+          continue;
+        }
+
+      if(FD_ISSET(0, &readfds))
+        {
+          break;
+        }
+    }
+
+  return getch();
 }
 
 int ISDEBUG = 0;
@@ -351,6 +431,85 @@ int main(int argc, char *argv[])
   }
   printf("the inifile %s\n",emc_inifile);
   iniLoad(emc_inifile);
+  // trap SIGINT
+  signal(SIGINT, quit);
+  pipe(sigpipe);
+    // set up handler for SIGALRM to handle periodic timer events
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_sigaction = alarmHandler;
+  sigaction(SIGALRM, &sa, NULL);
+  // set up curses
+  initscr();
+  cbreak();
+  noecho();
+  nonl();
+  intrflush(stdscr, FALSE);
+  keypad(stdscr, TRUE);
+  helpwin = newwin(0, 0, 0, 0);
+  diagwin = newwin(0, 0, 0, 0);
+  toolwin = newwin(0, 0, 0, 0);
+  logwin = newwin(0, 0, 0, 0);
+  progwin = newwin(0, 0, 0, 0);
+  window = stdscr;
+  
+    // fill in strings
 
+  for (t = 0; t < ASCLINELEN; t++)
+    {
+      line_blank[t] = ' ';
+    }
+  line_blank[ASCLINELEN] = 0;
+
+  for (t = 0; t < ASCLINELEN; t++)
+    {
+      bottom_string[t] = '-';
+    }
+  bottom_string[ASCLINELEN] = 0;
+  t = (ASCLINELEN - strlen(version_string)) / 2;
+  if (t >= 0)
+    {
+      memcpy(&bottom_string[t], version_string, strlen(version_string));
+    }
+
+  // get screen width and height
+  wbegy = 0;
+  wbegx = 0;
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &size) < 0)
+    {
+      // use 80x24 as default
+      wmaxy = 23;
+      wmaxx = 79;
+    }
+  else
+    {
+      wmaxy = size.ws_row - 1;
+      wmaxx = size.ws_col - 1;
+    }
+
+  // and set them here
+  cury = wmaxy;
+  curx = wbegx;
+  wmove(window, cury, curx);
+  wrefresh(window);
+    
+  // set up interval timer
+  if (!dump)
+    {
+      startTimer(usecs);
+    }
+  
+  while (! done)
+    {
+      oldch = ch;
+      ch = (chtype) getch_and_idle();
+
+	  // check for ^C that may happen during blocking read
+      if (done)
+      {
+        break;
+      }
+	}
+		
   return 0;
 }
