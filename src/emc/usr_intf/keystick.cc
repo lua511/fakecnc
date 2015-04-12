@@ -1,22 +1,32 @@
 #include <stdio.h>
-#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>          // ioctl(), TIOCGWINSZ, struct winsize
+#include <ctype.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>          // ioctl(), TIOCGWINSZ, struct winsize
 #include <unistd.h>             // STDIN_FILENO
-#include <ncurses.h>
+#include <inttypes.h>
 
 #include "emcglb.h"
 #include "emccfg.h"             // DEFAULT_TRAJ_MAX_VELOCITY
 #include "inifile.hh"           // INIFILE
 
+#include <ncurses.h>
+#define ESC 27
+#define TAB 9
+#define RETURN 13
+#define ALT(ch) ((ch) + 128)
+#define CTL(ch) ((ch) - 64)
+
+static char error_string[1024] = "";
+
 #define INTERRUPT_USECS 50000
 static int usecs = INTERRUPT_USECS;
+
 static chtype ch = 0, oldch = 0;
 
-#define ASCLINELEN 80
 // key repeat delays, in microseconds
 #define DEFAULT_FIRST_KEYUP_DELAY 300000 // works w/ 50000 alarm
 static int FIRST_KEYUP_DELAY = DEFAULT_FIRST_KEYUP_DELAY;
@@ -42,6 +52,39 @@ static int zJogPol = 1;
 
 static int catchErrors = 1;
 
+#define ASCLINELEN 80
+static char line_blank[ASCLINELEN + 1];
+
+static char scratch_string[ASCLINELEN] = "";
+static char state_string[ASCLINELEN] = "";
+static char mode_string[ASCLINELEN] = "";
+static char spindle_string[ASCLINELEN] = "";
+static char brake_string[ASCLINELEN] = "";
+static char mist_string[ASCLINELEN] = "";
+static char flood_string[ASCLINELEN] = "";
+static char lube_on_string[ASCLINELEN] = "";
+static char lube_level_string[ASCLINELEN] = "";
+static char home_string[ASCLINELEN] = "";
+static char pos_string[ASCLINELEN] = "";
+static char origin_string[ASCLINELEN] = "";
+static char speed_string[ASCLINELEN] = "";
+static char incr_string[ASCLINELEN] = "";
+static char prog_string[ASCLINELEN] = "";
+static char line_string[ASCLINELEN] = "";
+static char interp_string[ASCLINELEN] = "";
+static char active_g_codes_string[ASCLINELEN] = "";
+static char active_m_codes_string[ASCLINELEN] = "";
+
+// bottom string gill be set to "---Machine Version---"
+static char bottom_string[ASCLINELEN + 1] = "";
+
+// string for ini file version num
+static char version_string[LINELEN] = "";
+
+static unsigned char critFlag = 0;
+static int keyup_count = 0;
+static enum { DIAG_USECS = 1, DIAG_FIRST_KEYUP_DELAY, DIAG_NEXT_KEYUP_DELAY } 
+	diagtab = DIAG_USECS;
 static WINDOW * window = 0;
 static WINDOW * helpwin = 0;
 static WINDOW * diagwin = 0;
@@ -51,13 +94,51 @@ static WINDOW * progwin = 0;
 
 static int wbegy, wbegx;
 static int wmaxy, wmaxx;
-#define ASCLINELEN 80
-static char line_blank[ASCLINELEN + 1];
-// bottom string gill be set to "---Machine Version---"
-static char bottom_string[ASCLINELEN + 1] = "";
 
-// string for ini file version num
-static char version_string[LINELEN] = "";
+static void printFkeys()
+{
+	wattrset(window, A_BOLD);
+	mvwaddstr(window, 0, 1, "F1 ");
+	mvwaddstr(window, 1, 1, "F2 ");
+	mvwaddstr(window, 2, 1, "F3 ");
+	mvwaddstr(window, 3, 1, "F4 ");
+	mvwaddstr(window, 0, 21, "F5 ");
+	mvwaddstr(window, 1, 21, "F6 ");
+	mvwaddstr(window, 2, 21, "F7 ");
+	mvwaddstr(window, 3, 21, "F8 ");
+	mvwaddstr(window, 0, 41, "F9 ");
+	mvwaddstr(window, 1, 41, "F10");
+	mvwaddstr(window, 2, 41, "F11");
+	mvwaddstr(window, 3, 41, "F12");
+	mvwaddstr(window, 0, 61, "ESC");
+	mvwaddstr(window, 1, 61, "TAB");
+	mvwaddstr(window, 2, 61, "END");
+	mvwaddstr(window, 3, 61, " ? ");
+
+	wattrset(window, 0);
+	mvwaddstr(window, 0, 5, "Estop On/Off  ");
+	mvwaddstr(window, 1, 5, "Machine On/Off");
+	mvwaddstr(window, 2, 5, "Manual Mode   ");
+	mvwaddstr(window, 3, 5, "Auto Mode     ");
+
+	mvwaddstr(window, 0, 25, "MDI Mode      ");
+	mvwaddstr(window, 1, 25, "Reset Interp  ");
+	mvwaddstr(window, 2, 25, "Mist On/Off   ");
+	mvwaddstr(window, 3, 25, "Flood On/Off  ");
+
+	mvwaddstr(window, 0, 45, "Spndl Fwd/Off ");
+	mvwaddstr(window, 1, 45, "Spndl Rev/Off ");
+	mvwaddstr(window, 2, 45, "Spndl Decrease");
+	mvwaddstr(window, 3, 45, "Spndl Increase");
+
+	mvwaddstr(window, 0, 65, "Aborts Actions");
+	mvwaddstr(window, 1, 65, "Selects Params");
+	mvwaddstr(window, 2, 65, "Quits Display ");
+	mvwaddstr(window, 3, 65, "Toggles Help  ");
+}
+
+#define ERR_Y ((wmaxy) - 2)
+#define ERR_X (wbegx)
 
 // destructively converts string to its uppercase counterpart
 static char *upcase(char *string)
@@ -72,10 +153,7 @@ static char *upcase(char *string)
 
   return string;
 }
-static void idleHandler()
-{
-	
-}
+
 /*
   startTimer starts the timer to generate SIGALRM events, or stops the timer
   if 'us' is 0. Enable a signal handler for SIGALRM before you call this.
@@ -100,10 +178,293 @@ static void alarmHandler(int sig, siginfo_t *unused, void *unused2)
 }
 
 static int done = 0;
-
 static void quit(int sig)
 {
+	startTimer(0);
+	delwin(progwin);
+	progwin = 0;
+	delwin(logwin);
+	logwin = 0;
+	delwin(toolwin);
+	toolwin = 0;
+	delwin(diagwin);
+	diagwin = 0;
+	delwin(helpwin);
+	helpwin = 0;
+	endwin();
+
+	signal(SIGALRM, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
   exit(0);
+}
+
+static void printError(const char * errstring)
+{
+	int savey, savex;
+	chtype saveattr;
+
+	if (0 == window)
+	{
+		// no window yet
+		return;
+	}
+
+	critFlag = 1;
+
+	getyx(window, savey, savex);
+	saveattr = getattrs(window);
+
+	mvwaddstr(window, ERR_Y, ERR_X, line_blank);
+	wattrset(window, A_BOLD);
+	mvwaddstr(window, ERR_Y, ERR_X, errstring);
+	(void)wattrset(window, (int)saveattr);
+	wmove(window, savey, savex);
+	wrefresh(window);
+
+	critFlag = 0;
+}
+
+static void printStatus()
+{
+	int savey, savex;
+	int t;
+	int line;
+	int override;
+	int len;
+	int code;
+	getyx(window, savey, savex);
+
+	if (window == helpwin)
+	{
+		printFkeys();
+		wattrset(window, 0);
+		mvwaddstr(window, 5, 1, "x/X y/Y z/Z");
+		mvwaddstr(window, 6, 1, "HOME");
+		mvwaddstr(window, 7, 1, "< > or , .");
+		mvwaddstr(window, 8, 1, "1-9, 0");
+		mvwaddstr(window, 9, 1, "<- arrow keys ->");
+		mvwaddstr(window, 10, 1, "^ arrow keys V");
+		mvwaddstr(window, 11, 1, "PageUp/PageDown");
+		mvwaddstr(window, 12, 1, "c/C");
+		mvwaddstr(window, 13, 1, "i/I");
+		mvwaddstr(window, 14, 1, "#");
+		mvwaddstr(window, 15, 1, "@");
+
+		wattrset(window, A_UNDERLINE);
+		mvwaddstr(window, 5, 19, "selects axis");
+		mvwaddstr(window, 6, 19, "homes selected axis");
+		mvwaddstr(window, 7, 19, "change jog speed");
+		mvwaddstr(window, 8, 19, "10%-90%, 100% feed");
+		mvwaddstr(window, 9, 19, "jog X");
+		mvwaddstr(window, 10, 19, "jog Y");
+		mvwaddstr(window, 11, 19, "jog Z");
+		mvwaddstr(window, 12, 19, "sets continuous jog");
+		mvwaddstr(window, 13, 19, "toggles incr jog");
+		mvwaddstr(window, 14, 19, "toggles abs/rel");
+		mvwaddstr(window, 15, 19, "toggles cmd/act");
+
+		wattrset(window, 0);
+		mvwaddstr(window, 5, 41, "B");
+		mvwaddstr(window, 6, 41, "b");
+		mvwaddstr(window, 7, 41, "o/O");
+		mvwaddstr(window, 8, 41, "r/R");
+		mvwaddstr(window, 9, 41, "p/P");
+		mvwaddstr(window, 10, 41, "s/S");
+		mvwaddstr(window, 11, 41, "quote/XYZGM");
+		mvwaddstr(window, 12, 41, "l/L");
+		mvwaddstr(window, 13, 41, "u/U");
+
+		wattrset(window, A_UNDERLINE);
+		mvwaddstr(window, 5, 54, "turns spindle brake on");
+		mvwaddstr(window, 6, 54, "turns spindle brake off");
+		mvwaddstr(window, 7, 54, "prompts for program");
+		mvwaddstr(window, 8, 54, "runs selected program");
+		mvwaddstr(window, 9, 54, "pauses motion");
+		mvwaddstr(window, 10, 54, "starts motion again");
+		mvwaddstr(window, 11, 54, "prompts for MDI command");
+		mvwaddstr(window, 12, 54, "prompts for tool table");
+		mvwaddstr(window, 13, 54, "turns lube off/on");
+
+		if (error_string[0])
+		{
+			printError(error_string);
+		}
+
+		wattrset(window, A_REVERSE);
+		mvwaddstr(window, wmaxy - 1, wbegx, bottom_string);
+		wattrset(window, 0);
+
+		// restore cursor position
+		wmove(window, savey, savex);
+		wrefresh(window);
+	}
+	else if (window == diagwin)
+	{
+		wattrset(window, A_BOLD);
+		mvwaddstr(window, 0, 34, "Diagnostics");
+
+		wattrset(window, 0);
+		mvwaddstr(window, 2, 1, "Task Heartbeat/Cmd:");
+		mvwaddstr(window, 3, 1, "IO Heartbeat/Cmd:");
+		mvwaddstr(window, 4, 1, "Motion Heartbeat/Cmd:");
+
+		if (diagtab == DIAG_USECS)
+			wattrset(window, A_BOLD);
+		mvwaddstr(window, 6, 1, "Polling Period (usecs):");
+		wattrset(window, 0);
+		if (diagtab == DIAG_FIRST_KEYUP_DELAY)
+			wattrset(window, A_BOLD);
+		mvwaddstr(window, 7, 1, "Kbd Delay Until Repeat:");
+		wattrset(window, 0);
+		if (diagtab == DIAG_NEXT_KEYUP_DELAY)
+			wattrset(window, A_BOLD);
+		mvwaddstr(window, 8, 1, "Kbd Delay Between Repeats:");
+		wattrset(window, 0);
+
+		mvwaddstr(window, 10, 1, "Task Execution State:");
+
+		mvwaddstr(window, 12, 1, "Traj Scale:");
+		mvwaddstr(window, 13, 1, "X Scale:");
+		mvwaddstr(window, 14, 1, "Y Scale:");
+		mvwaddstr(window, 15, 1, "Z Scale:");
+
+		mvwaddstr(window, 17, 1, "V/Max V:");
+		mvwaddstr(window, 18, 1, "A/Max A:");
+
+		wattrset(window, A_UNDERLINE);
+
+		mvwaddstr(window, 4, 28, scratch_string);
+
+		sprintf(scratch_string, "%10d", usecs);
+		mvwaddstr(window, 6, 28, scratch_string);
+		sprintf(scratch_string, "%10d", FIRST_KEYUP_DELAY);
+		mvwaddstr(window, 7, 28, scratch_string);
+		sprintf(scratch_string, "%10d", NEXT_KEYUP_DELAY);
+		mvwaddstr(window, 8, 28, scratch_string);
+
+		mvwaddstr(window, 10, 28, scratch_string);
+
+		mvwaddstr(window, 12, 28, scratch_string);
+
+		mvwaddstr(window, 17, 28, scratch_string);
+		mvwaddstr(window, 18, 28, scratch_string);
+
+		wattrset(window, 0);
+		if (error_string[0])
+		{
+			printError(error_string);
+		}
+
+		wattrset(window, A_REVERSE);
+		mvwaddstr(window, wmaxy - 1, wbegx, bottom_string);
+		wattrset(window, 0);
+
+		// restore cursor position
+		wmove(window, savey, savex);
+		wrefresh(window);
+	}
+	else if (window == toolwin)
+	{
+		wattrset(window, A_BOLD);
+		mvwaddstr(window, 0, 34, "Tool Table");
+
+		wattrset(window, 0);
+		mvwaddstr(window, 2, 1, "Pocket    ToolNo    Length  Diameter");
+
+		wattrset(window, A_UNDERLINE);
+		line = 4;
+
+
+		wattrset(window, 0);
+		if (error_string[0])
+		{
+			printError(error_string);
+		}
+
+		wattrset(window, A_REVERSE);
+		mvwaddstr(window, wmaxy - 1, wbegx, bottom_string);
+		wattrset(window, 0);
+
+		// restore cursor position
+		wmove(window, savey, savex);
+		wrefresh(window);
+	}
+	else if (window == progwin)
+	{
+
+	}
+	else
+	{
+		printFkeys();
+
+		wattrset(window, 0);
+
+		mvwaddstr(window, 6, 1, "Override:");
+		mvwaddstr(window, 7, 1, "Tool:");
+		mvwaddstr(window, 8, 1, "Offset:");
+
+		mvwaddstr(window, 7, 61, "Speed:");
+		mvwaddstr(window, 8, 61, "Incr:             ");
+
+		strcpy(scratch_string, "--X--");
+
+
+		strcpy(scratch_string, "--Y--");
+	
+		mvwaddstr(window, 10, 47, scratch_string);
+
+		strcpy(scratch_string, "--Z--");
+
+		mvwaddstr(window, 10, 67, scratch_string);
+
+		if (coords == COORD_ABSOLUTE)
+		{
+			if (posDisplay == POS_DISPLAY_CMD)
+			{
+				mvwaddstr(window, 11, 1, "Absolute Cmd Pos:");
+			}
+			else
+			{
+				mvwaddstr(window, 11, 1, "Absolute Act Pos:");
+			}
+			mvwaddstr(window, 12, 0, line_blank);
+		}
+		else
+		{
+			coords = COORD_RELATIVE;
+			if (posDisplay == POS_DISPLAY_CMD)
+			{
+				mvwaddstr(window, 11, 1, "Relative Cmd Pos:");
+			}
+			else
+			{
+				mvwaddstr(window, 11, 1, "Relative Act Pos:");
+			}
+		}
+
+		mvwaddstr(window, 14, 0, line_blank);
+		mvwaddstr(window, 15, 0, line_blank);
+		mvwaddstr(window, 16, 0, line_blank);
+		mvwaddstr(window, 17, 0, line_blank);
+		mvwaddstr(window, 18, 0, line_blank);
+		mvwaddstr(window, 19, 0, line_blank);
+
+
+		wattrset(window, A_REVERSE);
+		mvwaddstr(window, wmaxy - 1, wbegx, bottom_string);
+		wattrset(window, 0);
+
+		// restore cursor position
+		wmove(window, savey, savex);
+		wrefresh(window);
+	}
+}
+static void idleHandler()
+{
+	if (!critFlag)
+	{
+		printStatus();
+	}
 }
 
 int getch_and_idle()
@@ -311,6 +672,7 @@ int main(int argc, char *argv[])
   //char keystick[] = "keystick";
   int charHandled;
   ISDEBUG = 0;
+
   // process command line args, indexing argv[] from [1]
   for (t = 1; t < argc; t++)
     {
@@ -428,8 +790,10 @@ int main(int argc, char *argv[])
 	  printf("usage:\n");
 	  printf("%s \n",argv[0]);
 	  printf("\tuse full path for ini file\n");
+	  return 0;
   }
-  printf("the inifile %s\n",emc_inifile);
+  if (ISDEBUG)  printf("the inifile %s\n",emc_inifile);
+  
   iniLoad(emc_inifile);
   // trap SIGINT
   signal(SIGINT, quit);
@@ -439,6 +803,7 @@ int main(int argc, char *argv[])
   memset(&sa, 0, sizeof(sa));
   sa.sa_sigaction = alarmHandler;
   sigaction(SIGALRM, &sa, NULL);
+
   // set up curses
   initscr();
   cbreak();
@@ -455,7 +820,7 @@ int main(int argc, char *argv[])
   
     // fill in strings
 
-  for (t = 0; t < ASCLINELEN; t++)
+  for (t = 0; t < ASCLINELEN; t++) // we all know,it's 80
     {
       line_blank[t] = ' ';
     }
@@ -509,7 +874,74 @@ int main(int argc, char *argv[])
       {
         break;
       }
+	  if (ch != oldch)
+      {
+        keyup_count = FIRST_KEYUP_DELAY;
+      }
+      else
+      {
+        keyup_count = NEXT_KEYUP_DELAY;
+	  }
+	  charHandled = 1;
+	  switch (ch)
+	  {
+	  case  ESC:
+		  // task abort
+		  break;
+	  case  TAB:
+		  if (window == diagwin)
+		  {
+			  
+		  }
+		  break;
+	  case ALT('o'):
+	  case  ALT('O'):
+		  break;
+	  case  CTL('L'):
+		  break;;
+	  case KEY_F(1):
+		  // estop
+		  break;
+	  case KEY_F(2):
+		  // servos
+		  break;
+	  case KEY_F(3):
+		  // manual mode
+		  break;
+	  case KEY_F(4):
+		  // auto mode
+		  break;
+	  case KEY_F(5):
+		  // mdi mode
+		  break;;
+	  default:
+		  charHandled = 0;
+		  break;
+	  }
+	  if (typing && !charHandled)
+	  {
+
+	  }
+	  switch(ch)
+	  {
+	  case RETURN:
+	    if (oldch != ch)
+		{
+		  // clear all error buffers
+		  critFlag = 1;
+		  mvwaddstr(stdscr, ERR_Y, ERR_X, line_blank);
+		  mvwaddstr(helpwin, ERR_Y, ERR_X, line_blank);
+		  mvwaddstr(diagwin, ERR_Y, ERR_X, line_blank);
+		  mvwaddstr(toolwin, ERR_Y, ERR_X, line_blank);
+		  mvwaddstr(logwin, ERR_Y, ERR_X, line_blank);
+		  mvwaddstr(progwin, ERR_Y, ERR_X, line_blank);
+		  wmove(window, wmaxy, wbegx);
+		  wrefresh(window);
+		  critFlag = 0;
+		}
+	    break;		
+	  }
 	}
-		
+  quit(0);
   return 0;
 }
