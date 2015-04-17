@@ -27,3 +27,4 @@ lib/python
 include
 src/emc/usr_intf/keystick
 src/libnml/inifile/testini
+*.out

@@ -10,9 +10,29 @@ SUBDIRS := \
 HEADERS := \
 	config.h \
 	emc/nml_intf/emcglb.h \
+	emc/nml_intf/emccfg.h \
+	emc/nml_intf/emc_nml.hh \
+	emc/nml_intf/emc.hh \
+	emc/nml_intf/debugflags.h \
+	emc/nml_intf/motion_types.h \
+	emc/nml_intf/canon.hh \
+	emc/nml_intf/emctool.h \
+	emc/rs274ngc/rs274ngc.hh \
+	emc/rs274ngc/interp_base.hh \
+	libnml/cmd_msg.hh \
+	libnml/nml.hh \
+	libnml/nml/nml_oi.hh \
+	libnml/nml/nml_type.hh \
+	libnml/nml/nmlmsg.hh \
+	libnml/nml/stat_msg.hh \
+	libnml/rcs/rcs.hh \
+	libnml/rcs/rcs_print.hh \
+	libnml/cms/cms.hh \
+	libnml/cms/cms_cfg.hh \
+	libnml/cms/cms_user.hh \
+	libnml/os_intf/timer.hh \
 	libnml/inifile/inifile.hh \
 	libnml/inifile/inifile.h \
-	emc/nml_intf/emccfg.h \
 	emc/motion/emcmotcfg.h \
 	libnml/posemath/posemath.h \
 	emc/nml_intf/emcpos.h \

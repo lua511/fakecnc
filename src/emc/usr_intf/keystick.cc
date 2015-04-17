@@ -9,9 +9,16 @@
 #include <unistd.h>             // STDIN_FILENO
 #include <inttypes.h>
 
+#include "posemath.h"
+#include "rcs.hh"
+#include "emc.hh"
+#include "emc_nml.hh"
 #include "emcglb.h"
 #include "emccfg.h"             // DEFAULT_TRAJ_MAX_VELOCITY
 #include "inifile.hh"           // INIFILE
+#include "rcs_print.hh"
+#include "nml_oi.hh"
+#include "timer.hh"
 
 #include <ncurses.h>
 #define ESC 27
@@ -19,6 +26,8 @@
 #define RETURN 13
 #define ALT(ch) ((ch) + 128)
 #define CTL(ch) ((ch) - 64)
+
+EMC_STAT *emcStatus = 0;
 
 static char error_string[1024] = "";
 
