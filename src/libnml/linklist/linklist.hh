@@ -1,17 +1,9 @@
 /********************************************************************
 * Description: linklist.hh
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
+* Author: 
 * License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
+* System: Linux,edited by ms vs on windows
 ********************************************************************/
-
 #ifndef LINKED_LIST_HH
 #define LINKED_LIST_HH
 
@@ -43,7 +35,6 @@ class LinkedListNode {
       LinkedListNode(void *_data, size_t _size);
      ~LinkedListNode();
 };
-
 class LinkedList {
   protected:
     LinkedListNode * head;
@@ -94,4 +85,5 @@ class LinkedList {
     LinkedList(LinkedList & list);	// Don't copy me.
 };
 
-#endif /* LINKED_LIST_HH */ 
+#endif /* LINKED_LIST_HH */
+
