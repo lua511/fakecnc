@@ -4,16 +4,15 @@
 #include <ctype.h>
 #include <signal.h>
 #include <errno.h>
-#include <sys/time.h>
+#include <sys/time.h>           // struct itimerval
 #include <sys/ioctl.h>          // ioctl(), TIOCGWINSZ, struct winsize
 #include <unistd.h>             // STDIN_FILENO
 #include <inttypes.h>
 
-#include "posemath.h"
-#include "rcs.hh"
-#include "emc.hh"
+#include "rcs.hh"               // rcs_print_error(), esleep()
+#include "emc.hh"               // EMC NML
 #include "emc_nml.hh"
-#include "emcglb.h"
+#include "emcglb.h"             // EMC_NMLFILE, TRAJ_MAX_VELOCITY
 #include "emccfg.h"             // DEFAULT_TRAJ_MAX_VELOCITY
 #include "inifile.hh"           // INIFILE
 #include "rcs_print.hh"
@@ -27,20 +26,72 @@
 #define ALT(ch) ((ch) + 128)
 #define CTL(ch) ((ch) - 64)
 
+static RCS_CMD_CHANNEL *emcCommandBuffer = 0;
+static RCS_STAT_CHANNEL *emcStatusBuffer = 0;
 EMC_STAT *emcStatus = 0;
 
-static char error_string[1024] = "";
+// the NML channel for errors
+static NML *emcErrorBuffer = 0;
+static char error_string[NML_ERROR_LEN] = "";
 
-#define INTERRUPT_USECS 50000
-static int usecs = INTERRUPT_USECS;
 
-static chtype ch = 0, oldch = 0;
+// NML messages
+static EMC_AXIS_ABORT emc_axis_abort_msg;
+static EMC_SPINDLE_CONSTANT emc_spindle_constant_msg;
 
-// key repeat delays, in microseconds
-#define DEFAULT_FIRST_KEYUP_DELAY 300000 // works w/ 50000 alarm
-static int FIRST_KEYUP_DELAY = DEFAULT_FIRST_KEYUP_DELAY;
-#define DEFAULT_NEXT_KEYUP_DELAY  100000 // works w/ 50000 alarm
-static int NEXT_KEYUP_DELAY = DEFAULT_NEXT_KEYUP_DELAY;
+// critical section flag-- set to non-zero to prevent sig handler
+// from interrupting your window printing
+static unsigned char critFlag = 0;
+
+// the program path prefix
+static char programPrefix[LINELEN] = "";
+static FILE * programFp = 0;
+static int programFpLine = 0;
+
+
+// error log file
+static FILE *errorFp = NULL;
+#define ERROR_FILE "keystick.err"
+static int xJogPol = 1;
+static int yJogPol = 1;
+static int zJogPol = 1;
+
+typedef enum {
+  AXIS_NONE = 1,
+  AXIS_X,
+  AXIS_Y,
+  AXIS_Z
+} AXIS_TYPE;
+
+static AXIS_TYPE axisSelected = AXIS_X;
+static AXIS_TYPE axisJogging = AXIS_NONE;
+
+static const char * axisString(AXIS_TYPE a)
+{
+  switch (a)
+    {
+    case AXIS_X:
+      return "    X SELECTED    ";
+    case AXIS_Y:
+      return "    Y SELECTED    ";
+    case AXIS_Z:
+      return "    Z SELECTED    ";
+    default:
+      return "    ? SELECTED    ";
+    }
+}
+
+static int axisIndex(AXIS_TYPE a)
+{
+  if (a == AXIS_X)
+    return 0;
+  if (a == AXIS_Y)
+    return 1;
+  if (a == AXIS_Z)
+    return 2;
+
+  return 0;
+}
 
 typedef enum {
   COORD_RELATIVE = 1,
@@ -53,13 +104,11 @@ typedef enum {
 } POS_DISPLAY_TYPE;
 static POS_DISPLAY_TYPE posDisplay = POS_DISPLAY_ACT;
 
-static char programPrefix[LINELEN] = "";
+static int spindleChanging = 0;
 
-static int xJogPol = 1;
-static int yJogPol = 1;
-static int zJogPol = 1;
-
-static int catchErrors = 1;
+#define INTERRUPT_USECS 50000
+static int usecs = INTERRUPT_USECS;
+static chtype ch = 0, oldch = 0;
 
 #define ASCLINELEN 80
 static char line_blank[ASCLINELEN + 1];
@@ -87,10 +136,12 @@ static char active_m_codes_string[ASCLINELEN] = "";
 // bottom string gill be set to "---Machine Version---"
 static char bottom_string[ASCLINELEN + 1] = "";
 
-// string for ini file version num
-static char version_string[LINELEN] = "";
+// key repeat delays, in microseconds
+#define DEFAULT_FIRST_KEYUP_DELAY 300000 // works w/ 50000 alarm
+static int FIRST_KEYUP_DELAY = DEFAULT_FIRST_KEYUP_DELAY;
+#define DEFAULT_NEXT_KEYUP_DELAY  100000 // works w/ 50000 alarm
+static int NEXT_KEYUP_DELAY = DEFAULT_NEXT_KEYUP_DELAY;
 
-static unsigned char critFlag = 0;
 static int keyup_count = 0;
 static enum { DIAG_USECS = 1, DIAG_FIRST_KEYUP_DELAY, DIAG_NEXT_KEYUP_DELAY } 
 	diagtab = DIAG_USECS;
@@ -149,63 +200,8 @@ static void printFkeys()
 #define ERR_Y ((wmaxy) - 2)
 #define ERR_X (wbegx)
 
-// destructively converts string to its uppercase counterpart
-static char *upcase(char *string)
-{
-  char *ptr = string;
 
-  while (*ptr)
-    {
-      *ptr = toupper(*ptr);
-      ptr++;
-    }
 
-  return string;
-}
-
-/*
-  startTimer starts the timer to generate SIGALRM events, or stops the timer
-  if 'us' is 0. Enable a signal handler for SIGALRM before you call this.
-*/
-void startTimer(int us)
-{
-  struct itimerval value;
-
-  value.it_interval.tv_sec = 0;
-  value.it_interval.tv_usec = us;
-  value.it_value.tv_sec = 0;
-  value.it_value.tv_usec = us;
-
-  setitimer(ITIMER_REAL, &value, 0);
-}
-
-int sigpipe[2];
-static void alarmHandler(int sig, siginfo_t *unused, void *unused2)
-{
-  char ch = 0;
-  write(sigpipe[1], &ch, 1);
-}
-
-static int done = 0;
-static void quit(int sig)
-{
-	startTimer(0);
-	delwin(progwin);
-	progwin = 0;
-	delwin(logwin);
-	logwin = 0;
-	delwin(toolwin);
-	toolwin = 0;
-	delwin(diagwin);
-	diagwin = 0;
-	delwin(helpwin);
-	helpwin = 0;
-	endwin();
-
-	signal(SIGALRM, SIG_DFL);
-	signal(SIGINT, SIG_DFL);
-  exit(0);
-}
 
 static void printError(const char * errstring)
 {
@@ -383,7 +379,6 @@ static void printStatus()
 		wattrset(window, A_UNDERLINE);
 		line = 4;
 
-
 		wattrset(window, 0);
 		if (error_string[0])
 		{
@@ -417,13 +412,11 @@ static void printStatus()
 
 		strcpy(scratch_string, "--X--");
 
-
 		strcpy(scratch_string, "--Y--");
 	
 		mvwaddstr(window, 10, 47, scratch_string);
 
 		strcpy(scratch_string, "--Z--");
-
 		mvwaddstr(window, 10, 67, scratch_string);
 
 		if (coords == COORD_ABSOLUTE)
@@ -468,43 +461,282 @@ static void printStatus()
 		wrefresh(window);
 	}
 }
-static void idleHandler()
+static int catchErrors = 1;
+static int updateStatus()
 {
-	if (!critFlag)
-	{
-		printStatus();
-	}
-}
+  NMLTYPE type;
 
-int getch_and_idle()
-{
-  fd_set readfds;
-  while (1)
+  if (0 == emcStatus ||
+      0 == emcStatusBuffer ||
+      ! emcStatusBuffer->valid())
     {
-      FD_ZERO(&readfds);
-      FD_SET(0, &readfds);
-      FD_SET(sigpipe[0], &readfds);
+      return -1;
+    }
 
-      select(sigpipe[0] + 1, &readfds, NULL, NULL, NULL);
-
-      if(FD_ISSET(sigpipe[0], &readfds))
+  if (catchErrors)
+    {
+      if (0 == emcErrorBuffer ||
+          ! emcErrorBuffer->valid())
         {
-          char buf;
-          read(sigpipe[0], &buf, 1);
-          idleHandler();
-          continue;
+          return -1;
         }
+    }
 
-      if(FD_ISSET(0, &readfds))
+  switch (type = emcStatusBuffer->peek())
+    {
+    case -1:
+      // error on CMS channel
+      return -1;
+      break;
+
+    case 0:                     // no new data
+    case EMC_STAT_TYPE: // new data
+      // new data
+      break;
+
+    default:
+      return -1;
+      break;
+    }
+
+  if (catchErrors)
+    {
+      switch (type = emcErrorBuffer->read())
         {
+        case -1:
+          // error reading channel
+          break;
+
+        case 0:
+          // nothing new
+          error_string[0] = 0;
+          break;
+
+        case EMC_OPERATOR_ERROR_TYPE:
+          strncpy(error_string,
+                  ((EMC_OPERATOR_ERROR *) (emcErrorBuffer->get_address()))->error,
+                  LINELEN - 1);
+          error_string[LINELEN - 1] = 0;
+          break;
+
+        case EMC_OPERATOR_TEXT_TYPE:
+          strncpy(error_string,
+                  ((EMC_OPERATOR_TEXT *) (emcErrorBuffer->get_address()))->text,
+                  LINELEN - 1);
+          error_string[LINELEN - 1] = 0;
+          break;
+
+        case EMC_OPERATOR_DISPLAY_TYPE:
+          strncpy(error_string,
+                  ((EMC_OPERATOR_DISPLAY *) (emcErrorBuffer->get_address()))->display,
+                  LINELEN - 1);
+          error_string[LINELEN - 1] = 0;
+          break;
+
+
+        case NML_ERROR_TYPE:
+          strncpy(error_string,
+                  ((NML_ERROR *) (emcErrorBuffer->get_address()))->error,
+                  NML_ERROR_LEN - 1);
+          error_string[NML_ERROR_LEN - 1] = 0;
+          break;
+
+        case NML_TEXT_TYPE:
+          strncpy(error_string,
+                  ((NML_TEXT *) (emcErrorBuffer->get_address()))->text,
+                  NML_ERROR_LEN - 1);
+          error_string[NML_ERROR_LEN - 1] = 0;
+          break;
+
+        case NML_DISPLAY_TYPE:
+          strncpy(error_string,
+                  ((NML_DISPLAY *) (emcErrorBuffer->get_address()))->display,
+                  NML_ERROR_LEN - 1);
+          error_string[NML_ERROR_LEN - 1] = 0;
+          break;
+
+        default:
+          strcpy(error_string, "unrecognized error");
           break;
         }
     }
 
-  return getch();
+  return 0;
+}
+static int emcCommandSend(RCS_CMD_MSG & cmd) {
+}
+/*
+  startTimer starts the timer to generate SIGALRM events, or stops the timer
+  if 'us' is 0. Enable a signal handler for SIGALRM before you call this.
+*/
+void startTimer(int us)
+{
+  struct itimerval value;
+
+  value.it_interval.tv_sec = 0;
+  value.it_interval.tv_usec = us;
+  value.it_value.tv_sec = 0;
+  value.it_value.tv_usec = us;
+
+  setitimer(ITIMER_REAL, &value, 0);
 }
 
+/*
+  alarmHandler is attached to SIGALRM, and handles the reading of NML
+  status, the update of the status window, and key-up simulation and
+  handling
+*/
+int sigpipe[2];
+
+static void alarmHandler(int sig, siginfo_t *unused, void *unused2)
+{
+  char ch = 0;
+  write(sigpipe[1], &ch, 1);
+}
+
+static void idleHandler()
+{
+  // read NML status
+  updateStatus();
+
+  // only print if main is not printing, so we don't clobber in the middle
+  if (! critFlag)
+    {
+      printStatus();
+    }
+
+  // simulate key-up event, as per comment below
+  keyup_count -= usecs;
+  if (keyup_count < 0)
+    {
+      keyup_count = 0;
+      oldch = 0;
+    }
+
+  /*
+    Key-up events are simulated as follows: each time a key is received,
+    keyup_count is loaded. If it's a new key, FIRST_KEYUP_DELAY is
+    loaded. If it's the same as the last key, NEXT_KEYUP_DELAY is loaded.
+    This is to handle the different delay between the first and subsequent
+    repeats.
+
+    Each time through this handler, keyup_count is decremented. If it
+    reaches 0, it means no key has been pressed before the delay expires,
+    and we see this as a key-up event.
+
+    If you have code that needs to respond to a key-up event, set a flag
+    when you do your key-down stuff, and put the key-up code in here,
+    like this:
+
+    if (myFlag && keyup_count == 0)
+      {
+        // do stuff for key up here
+
+        // and clear your flag
+        myFlag = 0;
+      }
+   */
+
+  // key up for jogs
+  if (axisJogging != AXIS_NONE && keyup_count == 0)
+    {
+      emc_axis_abort_msg.axis = axisIndex(axisJogging);
+      emcCommandSend(emc_axis_abort_msg);
+      axisJogging = AXIS_NONE;
+    }
+
+  // key up for spindle speed changes
+  if (spindleChanging && keyup_count == 0)
+    {
+      emcCommandSend(emc_spindle_constant_msg);
+      spindleChanging = 0;
+    }
+
+  return;
+}
+
+static int done = 0;
+static void quit(int sig)
+{
+  // disable timer
+  startTimer(0);
+
+  // clean up curses windows
+  delwin(progwin);
+  progwin = 0;
+  delwin(logwin);
+  logwin = 0;
+  delwin(toolwin);
+  toolwin = 0;
+  delwin(diagwin);
+  diagwin = 0;
+  delwin(helpwin);
+  helpwin = 0;
+  endwin();		//initscr - endwin 必须成对使用
+
+  // clean up NML buffers
+
+  if (emcErrorBuffer)
+    {
+      delete emcErrorBuffer;
+      emcErrorBuffer = 0;
+    }
+
+  if (emcStatusBuffer)
+    {
+      delete emcStatusBuffer;
+      emcStatusBuffer = 0;
+      emcStatus = 0;
+    }
+
+  if (emcCommandBuffer)
+    {
+      delete emcCommandBuffer;
+      emcCommandBuffer = 0;
+    }
+
+  // close program file
+  if (programFp)
+    {
+      fclose(programFp);
+      programFp = 0;
+    }
+
+  // close error log file
+  if (errorFp)
+    {
+      fclose(errorFp);
+      errorFp = NULL;
+    }
+
+  // reset signal handlers to default
+  signal(SIGALRM, SIG_DFL);
+  signal(SIGINT, SIG_DFL);
+
+  exit(0);
+}
+
+
+
 int ISDEBUG = 0;
+
+// string for ini file version num
+static char version_string[LINELEN] = "";
+
+// destructively converts string to its uppercase counterpart
+static char *upcase(char *string)
+{
+  char *ptr = string;
+
+  while (*ptr)
+    {
+      *ptr = toupper(*ptr);
+      ptr++;
+    }
+
+  return string;
+}
+
 static int iniLoad(const char *filename)
 {
   IniFile inifile;
@@ -662,6 +894,34 @@ static int iniLoad(const char *filename)
   inifile.Close();
 
   return 0;;
+}
+
+int getch_and_idle()
+{
+  fd_set readfds;
+  while (1)
+    {
+      FD_ZERO(&readfds);
+      FD_SET(0, &readfds);
+      FD_SET(sigpipe[0], &readfds);
+
+      select(sigpipe[0] + 1, &readfds, NULL, NULL, NULL);
+
+      if(FD_ISSET(sigpipe[0], &readfds))
+        {
+          char buf;
+          read(sigpipe[0], &buf, 1);
+          idleHandler();
+          continue;
+        }
+
+      if(FD_ISSET(0, &readfds))
+        {
+          break;
+        }
+    }
+
+  return getch();
 }
 
 int main(int argc, char *argv[])

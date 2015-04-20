@@ -6,11 +6,13 @@ all: $(LIB_DIR)/linuxcnc.a
 
 $(LIB_DIR)/linuxcnc.a: linuxcnc.a
 	cp linuxcnc.a $@
-linuxcnc.a: emcglb.o
-	$(AR) cr linuxcnc.a emcglb.o
+linuxcnc.a: emcglb.o emc.o
+	$(AR) cr linuxcnc.a emcglb.o emc.o
 
 emcglb.o: emcglb.c
 	$(CXX) -c -o emcglb.o emcglb.c -I$(INCLUDE_DIR)
+emc.o: emc.cc
+	$(CXX) -c -o $@ $^ -I$(INCLUDE_DIR)
 
 clean:
 	@rm -rf linuxcnc.a

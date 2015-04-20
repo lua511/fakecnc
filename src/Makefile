@@ -16,32 +16,42 @@ HEADERS := \
 	emc/nml_intf/debugflags.h \
 	emc/nml_intf/motion_types.h \
 	emc/nml_intf/canon.hh \
+	emc/nml_intf/canon_position.hh \
 	emc/nml_intf/emctool.h \
 	emc/rs274ngc/rs274ngc.hh \
 	emc/rs274ngc/interp_base.hh \
 	libnml/cmd_msg.hh \
 	libnml/nml.hh \
+	libnml/buffer/physmem.hh \
+	libnml/buffer/rem_msg.hh \
 	libnml/nml/nml_oi.hh \
+	libnml/linklist/linklist.hh \
 	libnml/nml/nml_type.hh \
 	libnml/nml/nmlmsg.hh \
 	libnml/nml/stat_msg.hh \
+	libnml/nml/nml_srv.hh \
+	libnml/nml/nmldiag.hh \
 	libnml/rcs/rcs.hh \
 	libnml/rcs/rcs_print.hh \
+	libnml/rcs/rcsversion.h \
 	libnml/cms/cms.hh \
 	libnml/cms/cms_cfg.hh \
 	libnml/cms/cms_user.hh \
+	libnml/cms/cms_srv.hh \
+	libnml/cms/cmsdiag.hh \
 	libnml/os_intf/timer.hh \
 	libnml/inifile/inifile.hh \
 	libnml/inifile/inifile.h \
 	emc/motion/emcmotcfg.h \
 	libnml/posemath/posemath.h \
 	emc/nml_intf/emcpos.h \
+	fakesrc/notimplement.hh \
 
 
 
 HEADS := $(notdir $(HEADERS))
 
-.PHONY: FORCE_CPI all clean
+.PHONY: FORCE_CPI fcpi all clean
 
 all: FORCE_CPI
 	@test -d $(BIN_DIR) || \
@@ -53,7 +63,7 @@ all: FORCE_CPI
 	for dir in $(SUBDIRS); do (cd $$dir; make $@); done
 clean:
 	for dir in $(SUBDIRS); do (cd $$dir; make $@); done
-
+fcpi: FORCE_CPI
 FORCE_CPI:
 	@test -d $(INCLUDE_DIR) || \
 		(echo mkdir $(INCLUDE_DIR) ; mkdir -p $(INCLUDE_DIR))
