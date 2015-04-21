@@ -32,6 +32,7 @@ clean:
 	rm -rf $(BIN_DIR)/$(BINVAR)
 	rm -rf $(LIB_DIR)/$(LIBVAR)
 	rm -rf $(LIBVAR)
+	rm -rf testini
 
 test: testinifile.c
 	@$(CXX) -o testini $(IHEAD) $< $(LIB_DIR)/$(LIBVAR)

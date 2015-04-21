@@ -1,16 +1,7 @@
 /*****************************************************************************
- * Description: inifile.cc
- *   C++ INI file reader
- *
- *   Derived from a work by Fred Proctor & Will Shackleford
- *
  * Author:
  * License: GPL Version 2
  * System: Linux
- *    
- * Copyright (c) 2004 All rights reserved.
- *
- * Last change: 
  *****************************************************************************/
 
 #include <stdio.h>              /* FILE *, fopen(), fclose(), NULL */

@@ -1,18 +1,8 @@
 /********************************************************************
-* Description: inifile.hh
-*   Declarations for INI file format functions
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
 * Author:
 * License: GPL Version 2
 * System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
 ********************************************************************/
-
 #ifndef INIFILE_HH
 #define INIFILE_HH
 

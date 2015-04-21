@@ -1,24 +1,8 @@
 /********************************************************************
-* Description: inivar.c
-*   prints to stdout the INI file result of a variable-in-section
-*   search, useful for scripts that want to pick things out of INI files.
-*
 *   syntax:  inivar -var <variable> {-sec <section>} {<-ini inifile>}
-*
-*   Uses emc.ini as default. <variable> needs to be supplied. If <section>
-*   is omitted, first instance of <variable> will be looked for in any
-*   section. Otherwise only a match of the variable in <section> will
-*   be returned.
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
 * Author:
 * License: GPL Version 2
 * System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
 ********************************************************************/
 
 #include <stdio.h>		/* printf(), fprintf(), FILE, fopen(),*/
@@ -28,10 +12,6 @@
 
 #include "config.h"
 #include "inifile.hh"
-
-// 2016年7月22日21:46:45
-// 这个exe的名字叫做inivar，在linuxcnc的启动脚本"linuxcnc"(shell)中，用以ini文件的核心字段解析
-
 
 int main(int argc, char *argv[])
 {
