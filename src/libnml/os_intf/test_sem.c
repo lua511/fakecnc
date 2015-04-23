@@ -7,7 +7,7 @@
 #define  KEY_V 1
 int main(int v, char* c[])
 {
-	rcs_sem_t *prst = rcs_sem_open(KEY_V, IPC_CREAT, 0);
+	rcs_sem_t *prst = rcs_sem_create(KEY_V, IPC_CREAT, 0);
 	double tm1 = etime();
 	rcs_sem_wait(prst, 0.5);
 	double tm2 = etime();
