@@ -1,6 +1,6 @@
 include ../../Makefile.inc
 
-.PHONY: ctimer tsem ttsem cpptimer
+.PHONY: ctimer tsem ttsem cpptimer tshmc
 
 ctimer:ctimer.out
 
@@ -21,4 +21,8 @@ ttsem.out: _sem.c sem.cc _timer.c testsem.cc
 cpptimer: cpptimer.out
 
 cpptimer.out: _sem.c sem.cc _timer.c timer.cc testtimerp.cc
+	$(CXX) -o $@ $^ -DWINTER_RAW -g
+
+tshmc: tshmc.out
+tshmc.out: testshmc.c _shm.c
 	$(CXX) -o $@ $^ -DWINTER_RAW -g
