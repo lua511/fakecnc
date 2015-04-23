@@ -31,12 +31,7 @@ typedef int rcs_sem_t;
 #ifndef WINTER_RAW
 #include "rcs_print.hh"
 #else
-void rcs_print_error(...)
-{}
-void rcs_puts(...)
-{}
-void rcs_print_debug(...)
-{}
+#include "os_intf_hold.hh"
 #define  PRINT_SEMAPHORE_ACTIVITY
 #endif
 

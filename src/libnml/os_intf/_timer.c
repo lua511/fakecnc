@@ -1,5 +1,7 @@
 #ifndef WINTER_RAW
 #include "rcs_print.hh"		/* rcs_print_error */
+#else
+#include "os_intf_hold.hh"
 #endif
 
 #include <stdio.h>		/* NULL */
@@ -35,9 +37,7 @@ double etime()
     double retval;
 
     if (0 != gettimeofday(&tp, NULL)) {
-#ifndef WINTER_RAW
 		rcs_print_error("etime: can't get time\n");
-#endif
 	return 0.0;
     }
 

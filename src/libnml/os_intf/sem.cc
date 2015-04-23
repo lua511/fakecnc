@@ -6,8 +6,7 @@ extern "C" {
 #ifndef WINTER_RAW
 #include "rcs_print.hh"		// rcs_print_debug(),
 #else
-void rcs_print_error(const char* fmt,...)
-{}
+#include "os_intf_hold.hh"
 #endif
 				// PRINT_SEMAPHORE_ACTIVITY
 #include "timer.hh"		// etime()

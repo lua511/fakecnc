@@ -1,6 +1,8 @@
 #include "_shm.h"
 #ifndef WINTER_RAW
 #include "rcs_print.hh"
+#else
+#include "os_intf_hold.hh"
 #endif
 #include <stdio.h>		/* NULL */
 #include <stdlib.h>
@@ -23,15 +25,6 @@
 #endif
 
 #include <string.h>
-
-#ifndef WINTER_RAW
-#else
-void rcs_print_debug(const char* fmt,...)
-{}
-void rcs_print_error(const char* fmt,...)
-{}
-#define	PRINT_SHARED_MEMORY_ACTIVITY "print_shared_memory_activity"
-#endif
 
 static int shmems_created_list[100];
 static int shmems_created_list_initialized = 0;
