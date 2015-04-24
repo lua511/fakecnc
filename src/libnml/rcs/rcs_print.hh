@@ -1,16 +1,3 @@
-/********************************************************************
-* Description: rcs_print.hh
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
-********************************************************************/
 #ifndef RCS_PRNT_HH
 #define RCS_PRNT_HH
 
@@ -202,4 +189,5 @@ extern int rcs_errors_printed;
 extern char last_error_bufs[4][100];
 extern int last_error_buf_filled;
 
-#endif 
+#endif
+
