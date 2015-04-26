@@ -981,4 +981,5 @@ extern "C" {
 #ifdef __cplusplus
 }				/* matches extern "C" for C++ */
 #endif
-#endif				/* #ifndef POSEMATH_H */ 
+#endif				/* #ifndef POSEMATH_H */
+
