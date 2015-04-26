@@ -1,19 +1,3 @@
-/********************************************************************
-* Description: nml_oi.cc
-*   Defines Generic NML Message structures used to log errors and
-*   interact with an Operator Interface from within an NML_MODULE.
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
-********************************************************************/
-
 #ifndef NML_OI_HH
 #define NML_OI_HH
 
@@ -69,4 +53,5 @@ class NML_DISPLAY:public NMLmsg {
 // NML format function
 extern int nmlErrorFormat(NMLTYPE type, void *buffer, CMS * cms);
 
-#endif 
+#endif
+

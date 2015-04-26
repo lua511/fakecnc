@@ -1,3 +1,4 @@
+
 #ifndef NMLMSG_HH
 #define NMLMSG_HH
 
@@ -35,7 +36,7 @@ class NMLmsg {
       NMLmsg(NMLTYPE t, long s, int noclear);
 
   public:
-    void clear();	
+    void clear();
 
     static int automatically_clear;	/* controls whether NMLmsgs are set
 					   to zero in the constructor. */
@@ -52,3 +53,4 @@ class NMLmsg {
 #define DECLARE_NML_DYNAMIC_LENGTH_ARRAY(type, name, size) int name##_length; type name[size];
 
 #endif /* !defined(NMLMSG_HH) */
+

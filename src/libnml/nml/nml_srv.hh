@@ -1,17 +1,3 @@
-/********************************************************************
-* Description: nml_srv.hh
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
-********************************************************************/
-
 #ifndef NML_SERVER_HH
 #define NML_SERVER_HH
 
@@ -84,4 +70,5 @@ extern void kill_nml_servers();
 extern "C" {
     extern void nml_server_cleanup();
 }
-#endif				/* !NML_SERVER_HH */ 
+#endif				/* !NML_SERVER_HH */
+
