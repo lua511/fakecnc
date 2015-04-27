@@ -1,23 +1,3 @@
-/********************************************************************
-* Description: rem_msg.hh
-*   Defines the structs passed between REMOTE clients and servers
-*   as part of CMS.
-*  Includes:
-*   1. struct REMOTE_READ_REQUEST,  REMOTE_READ_REPLY,
-*      REMOTE_WRITE_REPLY, REMOTE_WRITE_REQUEST.
-*   2. Function prototypes for functions that XDR encode and decode these
-*      structs.
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
-********************************************************************/
 
 #ifndef REM_MSG_HH
 #define REM_MSG_HH
@@ -323,4 +303,5 @@ struct REMOTE_READ_COMBINED_REPLY:public REMOTE_CMS_REPLY {
 };
 #endif
 
-#endif 
+#endif
+

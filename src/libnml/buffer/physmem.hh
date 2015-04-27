@@ -1,19 +1,3 @@
-/********************************************************************
-* Description: physmem.hh
-*   Provides the member functions for the PHYSMEM_HANDLE class. This
-*   is a C++ interface for portable access to physical memory.
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
-********************************************************************/
-
 #ifndef PHYSMEM_HH
 #define PHYSMEM_HH
 
@@ -70,4 +54,5 @@ class PHYSMEM_HANDLE {
     int enable_byte_counting;
 };
 
-#endif 
+#endif
+
