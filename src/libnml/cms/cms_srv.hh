@@ -1,27 +1,3 @@
-/********************************************************************
-* Description: cms_srv.hh
-*   C++ Header file for server that reads and writes to a local CMS
-*   buffer for remote processes.
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: LGPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change: 
-********************************************************************/
-/*************************************************************************
-* File:cms_srv.hh
-* Authors: Fred Proctor, Will Shackleford
-* Purpose: 
-* Includes:
-*          1. class CMS_SERVER
-*          2. class CMS_SERVER_LOCAL_PORT
-*************************************************************************/
-
 #ifndef CMS_SERVER_HH
 #define CMS_SERVER_HH
 
@@ -208,4 +184,5 @@ class CMS_SERVER {
 extern int (*detailed_security_check) (const char *user_name,
     const char *buffer_name, long msg_type, int access_type);
 
-#endif /* !CMS_SERVER_HH */ 
+#endif /* !CMS_SERVER_HH */
+
