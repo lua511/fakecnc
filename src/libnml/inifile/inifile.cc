@@ -10,8 +10,11 @@
 #include <ctype.h>              /* isspace() */
 #include <fcntl.h>
 
-
+#ifndef WINTER_RAW
 #include "config.h"
+#else
+#define  LINELEN 256
+#endif
 #include "inifile.hh"
 
 #define MAX_EXTEND_LINES 20
