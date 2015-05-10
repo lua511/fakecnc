@@ -1,45 +1,7 @@
-/********************************************************************
-* Description: kinematics.h
-*
-*   Derived from a work by Fred Proctor & Will Shackleford
-*
-* Author:
-* License: GPL Version 2
-* System: Linux
-*    
-* Copyright (c) 2004 All rights reserved.
-*
-* Last change:
-********************************************************************/
-
 #ifndef KINEMATICS_H
 #define KINEMATICS_H
 
 #include "emcpos.h"		/* EmcPose */
-
-/*
-  The type of kinematics used.
-  
-  KINEMATICS_IDENTITY means that the joints and world coordinates are the
-  same, as for slideway machines (XYZ milling machines). The EMC will allow
-  changing from joint to world mode and vice versa. Also, the EMC will set
-  the actual world position to be the actual joint positions (not commanded)
-  by calling the forward kinematics each trajectory cycle.
-
-  KINEMATICS_FORWARD_ONLY means that only the forward kinematics exist.
-  Since the EMC requires at least the inverse kinematics, this should simply
-  terminate the EMC.
-
-  KINEMATICS_INVERSE_ONLY means that only the inverse kinematics exist.
-  The forwards won't be called, and the EMC will only allow changing from
-  joint to world mode at the home position.
-
-  KINEMATICS_BOTH means that both the forward and inverse kins are defined.
-  Like KINEMATICS_IDENTITY, the EMC will allow changing between world and
-  joint modes. However, the kins are assumed to be somewhat expensive
-  computationally, and the forwards won't be called at the trajectory rate
-  to compute actual world coordinates from actual joint values.
-*/
 
 typedef enum {
     KINEMATICS_IDENTITY = 1,	/* forward=inverse, both well-behaved */
@@ -101,4 +63,5 @@ extern int kinematicsHome(struct EmcPose * world,
 
 extern KINEMATICS_TYPE kinematicsType(void);
 
-#endif 
+#endif
+
