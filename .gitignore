@@ -29,3 +29,4 @@ src/emc/usr_intf/keystick
 src/libnml/inifile/testini
 *.out
 src/fakesrc/testreport
+src/emc/user_comps/test.xml
