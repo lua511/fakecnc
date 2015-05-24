@@ -1,4 +1,6 @@
-#!/usr/bin/env python
-# vim: sts=4 sw=4 et
+class Pin(object):
+    def __init__(self,item):
+        print "I am pin"
 
-print 'hello,I am hal.py"
+def component(compame):
+	print "hello,you r in hal"
