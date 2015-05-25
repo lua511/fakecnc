@@ -1,6 +1,11 @@
-class Pin(object):
-    def __init__(self,item):
-        print "I am pin"
+import _hal
+from _hal import *
 
-def component(compame):
-	print "hello,you r in hal"
+class component(_hal.component):
+    def things(self): return _hal.component.whoami(self)
+
+
+c = component('test')
+
+print c.things()
+
